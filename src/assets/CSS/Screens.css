@@ -1,0 +1,67 @@
+.screens-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.screens-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 10px;
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.screen-tab {
+    display: flex;
+    align-items: center;
+    background-color: rgb(204, 206, 206);
+    border-radius: 6px;
+    padding: 4px 6px;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.screen-tab.active {
+    background-color: white;
+    border: 1px solid black;
+}
+
+.screen-tab-label {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+
+.screen-tab-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.screen-tab-add {
+    background-color: white;
+    border: 1px dashed black;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.screens-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    text-align: center;
+    padding: 20px;
+}

@@ -5,13 +5,29 @@ import FormContainer from './views/FormContainer'
 import { useFormBuilder } from './hooks/useFormBuilder'
 
 function App() {
-  const { items, handleDragOver, handleDragEnd } = useFormBuilder();
+  const {
+    screens,
+    activeScreenId,
+    items,
+    addScreen,
+    removeScreen,
+    selectScreen,
+    handleDragOver,
+    handleDragEnd,
+  } = useFormBuilder();
 
   return (
     <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="app-container">
         <PaletteContainer />
-        <FormContainer items={items} />
+        <FormContainer
+          screens={screens}
+          activeScreenId={activeScreenId}
+          items={items}
+          onAddScreen={addScreen}
+          onRemoveScreen={removeScreen}
+          onSelectScreen={selectScreen}
+        />
       </div>
     </DragDropProvider>
   )

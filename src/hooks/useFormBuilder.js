@@ -4,23 +4,56 @@ import { isSortable } from '@dnd-kit/react/sortable'
 // Placeholder id used to preview where a node dragged from the palette will land.
 const PREVIEW_ID = '__palette-preview__';
 
-// The gray drop zone is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
-const isPointerInsideFormContainer = (position) => {
+// The white screen area is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
+const isPointerInsideScreen = (position) => {
     if (!position) return false;
-    const container = document.querySelector('.form-container');
-    if (!container) return false;
-    const rect = container.getBoundingClientRect();
+    const screen = document.querySelector('.screen');
+    if (!screen) return false;
+    const rect = screen.getBoundingClientRect();
     return position.x >= rect.left && position.x <= rect.right && position.y >= rect.top && position.y <= rect.bottom;
 };
 
+const createScreen = (name) => ({ id: crypto.randomUUID(), name, items: [] });
+
 export const useFormBuilder = () => {
-    const [items, setItems] = useState([]);
+    const [screens, setScreens] = useState([]);
+    const [activeScreenId, setActiveScreenId] = useState(null);
+
+    const activeScreen = screens.find((screen) => screen.id === activeScreenId) ?? null;
+    const items = activeScreen?.items ?? [];
+
+    // Nodes are only ever added/reordered on the active screen; there is nothing to drop into without one.
+    const updateActiveScreenItems = (updater) => {
+        setScreens((currentScreens) => currentScreens.map((screen) => (
+            screen.id === activeScreenId
+                ? { ...screen, items: typeof updater === 'function' ? updater(screen.items) : updater }
+                : screen
+        )));
+    };
+
+    const addScreen = () => {
+        const newScreen = createScreen(`Screen ${screens.length + 1}`);
+        setScreens((currentScreens) => [...currentScreens, newScreen]);
+        setActiveScreenId(newScreen.id);
+    };
+
+    const removeScreen = (screenId) => {
+        const remainingScreens = screens.filter((screen) => screen.id !== screenId);
+        setScreens(remainingScreens);
+        setActiveScreenId((currentActiveId) => (
+            currentActiveId === screenId ? (remainingScreens[0]?.id ?? null) : currentActiveId
+        ));
+    };
+
+    const selectScreen = (screenId) => setActiveScreenId(screenId);
 
     const handleDragOver = (event) => {
+        if (!activeScreenId) return;
+
         const { source, target, position } = event.operation;
         if (!source?.data?.fromPalette) return;
 
-        setItems((currentItems) => {
+        updateActiveScreenItems((currentItems) => {
             const previewIndex = currentItems.findIndex((item) => item.id === PREVIEW_ID);
             const withoutPreview = currentItems.filter((item) => item.id !== PREVIEW_ID);
 
@@ -36,7 +69,7 @@ export const useFormBuilder = () => {
                     targetIndex += 1;
                 }
             } else {
-                // Hovering the container itself (e.g. the empty gap above the first or below the last card):
+                // Hovering the screen itself (e.g. the empty gap above the first or below the last card):
                 // use the pointer position instead of always appending, so it agrees with the nearest card's own logic.
                 const rect = target?.shape?.boundingRectangle;
                 if (rect && position?.current) {
@@ -61,8 +94,10 @@ export const useFormBuilder = () => {
     };
 
     const handleDragEnd = (event) => {
+        if (!activeScreenId) return;
+
         if (event.canceled) {
-            setItems((currentItems) => currentItems.filter((item) => item.id !== PREVIEW_ID));
+            updateActiveScreenItems((currentItems) => currentItems.filter((item) => item.id !== PREVIEW_ID));
             return;
         }
 
@@ -70,8 +105,8 @@ export const useFormBuilder = () => {
         if (!source) return;
 
         if (source.data?.fromPalette) {
-            const shouldCommit = isPointerInsideFormContainer(position?.current);
-            setItems((currentItems) => (
+            const shouldCommit = isPointerInsideScreen(position?.current);
+            updateActiveScreenItems((currentItems) => (
                 shouldCommit
                     ? currentItems.map((item) => (
                         item.id === PREVIEW_ID
@@ -84,15 +119,15 @@ export const useFormBuilder = () => {
         }
 
         if (isSortable(source)) {
-            if (!isPointerInsideFormContainer(position?.current)) {
-                // Dropped outside the gray form zone: remove the node instead of leaving it in place.
-                setItems((currentItems) => currentItems.filter((item) => item.id !== source.id));
+            if (!isPointerInsideScreen(position?.current)) {
+                // Dropped outside the white screen zone: remove the node instead of leaving it in place.
+                updateActiveScreenItems((currentItems) => currentItems.filter((item) => item.id !== source.id));
                 return;
             }
 
             const { initialIndex, index } = source;
             if (initialIndex !== index) {
-                setItems((currentItems) => {
+                updateActiveScreenItems((currentItems) => {
                     const newItems = [...currentItems];
                     const [removed] = newItems.splice(initialIndex, 1);
                     newItems.splice(index, 0, removed);
@@ -102,6 +137,16 @@ export const useFormBuilder = () => {
         }
     };
 
-    return { items, handleDragOver, handleDragEnd };
+    return {
+        screens,
+        activeScreenId,
+        items,
+        addScreen,
+        removeScreen,
+        selectScreen,
+        handleDragOver,
+        handleDragEnd,
+    };
 };
+
 
