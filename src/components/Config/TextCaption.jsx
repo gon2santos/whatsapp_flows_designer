@@ -1,13 +1,14 @@
-import { useState } from 'react'
-
-const TextCaption = () => {
-    const [text, setText] = useState('');
-
+const TextCaption = ({ config, onChange }) => {
     return (
         <div className="config-panel">
             <label>
                 Text
-                <input type="text" value={text} onChange={(event) => setText(event.target.value)} placeholder="Caption text" />
+                <input
+                    type="text"
+                    value={config.text ?? ''}
+                    onChange={(event) => onChange({ ...config, text: event.target.value })}
+                    placeholder="Caption text"
+                />
             </label>
         </div>
     );

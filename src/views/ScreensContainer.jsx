@@ -1,7 +1,7 @@
 import '../assets/CSS/Screens.css'
 import Screen from '../components/Screen'
 
-const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen }) => {
+const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onConfigChange }) => {
     return (
         <div className="screens-container">
             <div className="screens-tabs">
@@ -24,7 +24,7 @@ const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemov
             </div>
 
             {activeScreenId
-                ? <Screen items={items} />
+                ? <Screen items={items} onConfigChange={onConfigChange} />
                 : <div className="screens-empty">Agrega una pantalla para comenzar</div>}
         </div>
     )

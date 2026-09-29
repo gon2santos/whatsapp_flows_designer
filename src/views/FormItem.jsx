@@ -7,7 +7,7 @@ import nodeDefinitions from '../data/nodeDefinitions'
 
 // A node placed inside the form; sortable within the 'form' group so it can be reordered.
 // closestCenter avoids the tiny/erratic hit zones of pure shape-overlap detection.
-const FormItem = ({ id, index, type, title }) => {
+const FormItem = ({ id, index, type, title, config, onConfigChange }) => {
     const { ref } = useSortable({ id, index, group: 'form', collisionDetector: closestCenter });
     const [isConfigOpen, setIsConfigOpen] = useState(false);
 
@@ -21,7 +21,7 @@ const FormItem = ({ id, index, type, title }) => {
             </Node>
             {isConfigOpen && (
                 <Modal title={title} onClose={() => setIsConfigOpen(false)}>
-                    {ConfigPanel && <ConfigPanel />}
+                    {ConfigPanel && <ConfigPanel config={config ?? {}} onChange={(newConfig) => onConfigChange(id, newConfig)} />}
                 </Modal>
             )}
         </>

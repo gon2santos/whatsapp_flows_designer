@@ -1,13 +1,14 @@
-import { useState } from 'react'
-
-const TextLargeHeading = () => {
-    const [text, setText] = useState('');
-
+const TextLargeHeading = ({ config, onChange }) => {
     return (
         <div className="config-panel">
             <label>
                 Heading
-                <input type="text" value={text} onChange={(event) => setText(event.target.value)} placeholder="Large heading" />
+                <input
+                    type="text"
+                    value={config.text ?? ''}
+                    onChange={(event) => onChange({ ...config, text: event.target.value })}
+                    placeholder="Large heading"
+                />
             </label>
         </div>
     );

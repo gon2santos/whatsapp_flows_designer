@@ -1,22 +1,24 @@
-import { useState } from 'react'
-
 // Reusable label + editable option list, shared by Dropdown/Radio/MultipleChoice configs.
-const OptionsField = ({ addLabel }) => {
-    const [label, setLabel] = useState('');
-    const [options, setOptions] = useState(['']);
+const OptionsField = ({ config, onChange, addLabel }) => {
+    const options = config.options?.length ? config.options : [''];
 
     const updateOption = (index, value) => {
-        setOptions((current) => current.map((option, i) => (i === index ? value : option)));
+        onChange({ ...config, options: options.map((option, i) => (i === index ? value : option)) });
     };
 
-    const addOption = () => setOptions((current) => [...current, '']);
-    const removeOption = (index) => setOptions((current) => current.filter((_, i) => i !== index));
+    const addOption = () => onChange({ ...config, options: [...options, ''] });
+    const removeOption = (index) => onChange({ ...config, options: options.filter((_, i) => i !== index) });
 
     return (
         <div className="config-panel">
             <label>
                 Label
-                <input type="text" value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Question label" />
+                <input
+                    type="text"
+                    value={config.label ?? ''}
+                    onChange={(event) => onChange({ ...config, label: event.target.value })}
+                    placeholder="Question label"
+                />
             </label>
             <div className="config-options">
                 {options.map((option, index) => (

@@ -1,8 +1,23 @@
 import { useState } from 'react'
 import { isSortable } from '@dnd-kit/react/sortable'
+import nodeDefinitions from '../data/nodeDefinitions'
+import { slugify } from '../utils/slugify'
 
 // Placeholder id used to preview where a node dragged from the palette will land.
 const PREVIEW_ID = '__palette-preview__';
+
+// Builds a real node from a committed preview: stable field name + the type's default editable config.
+const createNodeFromPreview = (preview) => {
+    const id = crypto.randomUUID();
+    const defaultConfig = nodeDefinitions.find((definition) => definition.type === preview.type)?.defaultConfig ?? {};
+    return {
+        id,
+        type: preview.type,
+        title: preview.title,
+        name: `${slugify(preview.title)}_${id.slice(0, 8)}`,
+        config: { ...defaultConfig },
+    };
+};
 
 // The white screen area is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
 const isPointerInsideScreen = (position) => {
@@ -46,6 +61,15 @@ export const useFormBuilder = () => {
     };
 
     const selectScreen = (screenId) => setActiveScreenId(screenId);
+
+    // Stores the modal's edits for a single node back into that node's screen, keyed by node id.
+    const updateItemConfig = (itemId, newConfig) => {
+        setScreens((currentScreens) => currentScreens.map((screen) => (
+            screen.items.some((item) => item.id === itemId)
+                ? { ...screen, items: screen.items.map((item) => (item.id === itemId ? { ...item, config: newConfig } : item)) }
+                : screen
+        )));
+    };
 
     const handleDragOver = (event) => {
         if (!activeScreenId) return;
@@ -117,9 +141,7 @@ export const useFormBuilder = () => {
             updateActiveScreenItems((currentItems) => (
                 shouldCommit
                     ? currentItems.map((item) => (
-                        item.id === PREVIEW_ID
-                            ? { id: crypto.randomUUID(), type: item.type, title: item.title }
-                            : item
+                        item.id === PREVIEW_ID ? createNodeFromPreview(item) : item
                     ))
                     : currentItems.filter((item) => item.id !== PREVIEW_ID)
             ));
@@ -152,6 +174,7 @@ export const useFormBuilder = () => {
         addScreen,
         removeScreen,
         selectScreen,
+        updateItemConfig,
         handleDragOver,
         handleDragEnd,
     };

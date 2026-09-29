@@ -12,6 +12,7 @@ function App() {
     addScreen,
     removeScreen,
     selectScreen,
+    updateItemConfig,
     handleDragOver,
     handleDragEnd,
   } = useFormBuilder();
@@ -27,6 +28,7 @@ function App() {
           onAddScreen={addScreen}
           onRemoveScreen={removeScreen}
           onSelectScreen={selectScreen}
+          onConfigChange={updateItemConfig}
         />
       </div>
     </DragDropProvider>

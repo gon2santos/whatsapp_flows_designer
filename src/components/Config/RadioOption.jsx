@@ -1,5 +1,5 @@
 import OptionsField from './OptionsField'
 
-const RadioOption = () => <OptionsField addLabel="Add option" />;
+const RadioOption = (props) => <OptionsField {...props} addLabel="Add option" />;
 
 export default RadioOption;

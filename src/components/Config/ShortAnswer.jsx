@@ -1,17 +1,21 @@
-import { useState } from 'react'
-
-const ShortAnswer = () => {
-    const [label, setLabel] = useState('');
-    const [required, setRequired] = useState(false);
-
+const ShortAnswer = ({ config, onChange }) => {
     return (
         <div className="config-panel">
             <label>
                 Label
-                <input type="text" value={label} onChange={(event) => setLabel(event.target.value)} placeholder="e.g. What's your name?" />
+                <input
+                    type="text"
+                    value={config.label ?? ''}
+                    onChange={(event) => onChange({ ...config, label: event.target.value })}
+                    placeholder="e.g. What's your name?"
+                />
             </label>
             <label className="config-checkbox">
-                <input type="checkbox" checked={required} onChange={(event) => setRequired(event.target.checked)} />
+                <input
+                    type="checkbox"
+                    checked={!!config.required}
+                    onChange={(event) => onChange({ ...config, required: event.target.checked })}
+                />
                 Required
             </label>
         </div>

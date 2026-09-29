@@ -1,5 +1,5 @@
 import OptionsField from './OptionsField'
 
-const DropdownOption = () => <OptionsField addLabel="Add option" />;
+const DropdownOption = (props) => <OptionsField {...props} addLabel="Add option" />;
 
 export default DropdownOption;
