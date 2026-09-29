@@ -11,6 +11,11 @@
     margin: 10px;
     user-select: none;
     cursor: grab;
+    transition: transform 0.1s ease-in-out;
+}
+
+.node-container:hover {
+    transform: scale(1.08);
 }
 
 .node-content {
