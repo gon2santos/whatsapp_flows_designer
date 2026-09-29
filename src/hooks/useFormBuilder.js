@@ -69,14 +69,22 @@ export const useFormBuilder = () => {
                     targetIndex += 1;
                 }
             } else {
-                // Hovering the screen itself (e.g. the empty gap above the first or below the last card):
-                // use the pointer position instead of always appending, so it agrees with the nearest card's own logic.
-                const rect = target?.shape?.boundingRectangle;
-                if (rect && position?.current) {
-                    const midY = (rect.top + rect.bottom) / 2;
-                    targetIndex = position.current.y > midY ? withoutPreview.length : 0;
-                } else {
+                // Hovering empty space in the screen (no card underneath): anchor to the existing cards' own
+                // span instead of the screen's full height, which can be much taller than its content.
+                const cardElements = Array.from(document.querySelectorAll('.screen [data-node-id]'));
+                if (cardElements.length === 0 || !position?.current) {
                     targetIndex = withoutPreview.length;
+                } else {
+                    const firstRect = cardElements[0].getBoundingClientRect();
+                    const lastRect = cardElements[cardElements.length - 1].getBoundingClientRect();
+                    if (position.current.y <= firstRect.top) {
+                        targetIndex = 0;
+                    } else if (position.current.y >= lastRect.bottom) {
+                        targetIndex = withoutPreview.length;
+                    } else {
+                        // Between cards but not over any of them: keep the current spot instead of jumping.
+                        targetIndex = previewIndex !== -1 ? previewIndex : withoutPreview.length;
+                    }
                 }
             }
 

@@ -16,7 +16,7 @@ const FormItem = ({ id, index, type, title }) => {
 
     return (
         <>
-            <Node ref={ref} title={title} onDoubleClick={() => setIsConfigOpen(true)}>
+            <Node ref={ref} title={title} data-node-id={id} onDoubleClick={() => setIsConfigOpen(true)}>
                 {definition && <definition.Icon />}
             </Node>
             {isConfigOpen && (

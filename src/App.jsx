@@ -1,7 +1,7 @@
 import './App.css'
 import { DragDropProvider } from '@dnd-kit/react'
 import PaletteContainer from './views/Config/PaletteContainer'
-import FormContainer from './views/FormContainer'
+import PreviewPanel from './views/PreviewPanel'
 import { useFormBuilder } from './hooks/useFormBuilder'
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
     <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="app-container">
         <PaletteContainer />
-        <FormContainer
+        <PreviewPanel
           screens={screens}
           activeScreenId={activeScreenId}
           items={items}

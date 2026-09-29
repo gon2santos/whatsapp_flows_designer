@@ -1,0 +1,26 @@
+.preview-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.preview-tabs {
+    display: flex;
+    width: 100%;
+}
+
+.preview-tab {
+    background-color: rgb(204, 206, 206);
+    border: 1px solid black;
+    border-radius: 6px 6px 0 0;
+    padding: 6px 16px;
+    cursor: pointer;
+    font: inherit;
+    width: 100%;
+}
+
+.preview-tab.active {
+    background-color: white;
+    font-weight: bold;
+}
