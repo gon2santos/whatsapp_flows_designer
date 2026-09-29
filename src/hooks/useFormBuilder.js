@@ -28,7 +28,13 @@ const isPointerInsideScreen = (position) => {
     return position.x >= rect.left && position.x <= rect.right && position.y >= rect.top && position.y <= rect.bottom;
 };
 
-const createScreen = (name) => ({ id: crypto.randomUUID(), name, items: [] });
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz';
+const randomLetters = (length) => Array.from({ length }, () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)]).join('');
+
+// WhatsApp Flow screen ids must only contain letters and underscores (no digits, hyphens, etc.).
+const createScreenId = () => `screen_${randomLetters(10)}`;
+
+const createScreen = (name) => ({ id: createScreenId(), name, items: [] });
 
 export const useFormBuilder = () => {
     const [screens, setScreens] = useState([]);
