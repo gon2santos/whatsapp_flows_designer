@@ -68,6 +68,12 @@ export const useFormBuilder = () => {
 
     const selectScreen = (screenId) => setActiveScreenId(screenId);
 
+    const renameScreen = (screenId, newName) => {
+        setScreens((currentScreens) => currentScreens.map((screen) => (
+            screen.id === screenId ? { ...screen, name: newName } : screen
+        )));
+    };
+
     // Stores the modal's edits for a single node back into that node's screen, keyed by node id.
     const updateItemConfig = (itemId, newConfig) => {
         setScreens((currentScreens) => currentScreens.map((screen) => (
@@ -180,6 +186,7 @@ export const useFormBuilder = () => {
         addScreen,
         removeScreen,
         selectScreen,
+        renameScreen,
         updateItemConfig,
         handleDragOver,
         handleDragEnd,

@@ -12,6 +12,7 @@ function App() {
     addScreen,
     removeScreen,
     selectScreen,
+    renameScreen,
     updateItemConfig,
     handleDragOver,
     handleDragEnd,
@@ -28,6 +29,7 @@ function App() {
           onAddScreen={addScreen}
           onRemoveScreen={removeScreen}
           onSelectScreen={selectScreen}
+          onRenameScreen={renameScreen}
           onConfigChange={updateItemConfig}
         />
       </div>
