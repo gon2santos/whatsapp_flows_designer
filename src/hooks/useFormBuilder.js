@@ -4,6 +4,15 @@ import { isSortable } from '@dnd-kit/react/sortable'
 // Placeholder id used to preview where a node dragged from the palette will land.
 const PREVIEW_ID = '__palette-preview__';
 
+// The gray drop zone is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
+const isPointerInsideFormContainer = (position) => {
+    if (!position) return false;
+    const container = document.querySelector('.form-container');
+    if (!container) return false;
+    const rect = container.getBoundingClientRect();
+    return position.x >= rect.left && position.x <= rect.right && position.y >= rect.top && position.y <= rect.bottom;
+};
+
 export const useFormBuilder = () => {
     const [items, setItems] = useState([]);
 
@@ -57,19 +66,30 @@ export const useFormBuilder = () => {
             return;
         }
 
-        const { source } = event.operation;
+        const { source, position } = event.operation;
         if (!source) return;
 
         if (source.data?.fromPalette) {
-            setItems((currentItems) => currentItems.map((item) => (
-                item.id === PREVIEW_ID
-                    ? { id: crypto.randomUUID(), type: item.type, title: item.title }
-                    : item
-            )));
+            const shouldCommit = isPointerInsideFormContainer(position?.current);
+            setItems((currentItems) => (
+                shouldCommit
+                    ? currentItems.map((item) => (
+                        item.id === PREVIEW_ID
+                            ? { id: crypto.randomUUID(), type: item.type, title: item.title }
+                            : item
+                    ))
+                    : currentItems.filter((item) => item.id !== PREVIEW_ID)
+            ));
             return;
         }
 
         if (isSortable(source)) {
+            if (!isPointerInsideFormContainer(position?.current)) {
+                // Dropped outside the gray form zone: remove the node instead of leaving it in place.
+                setItems((currentItems) => currentItems.filter((item) => item.id !== source.id));
+                return;
+            }
+
             const { initialIndex, index } = source;
             if (initialIndex !== index) {
                 setItems((currentItems) => {
