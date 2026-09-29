@@ -11,10 +11,31 @@ const buildFormChildren = (items) => items
 // Payload key used to carry a screen's answer forward through the navigate/complete chain.
 const payloadKey = (screenIndex, fieldName) => `screen_${screenIndex}_${fieldName}`;
 
+// The runtime value type each WhatsApp Flow component produces, used to keep the forwarded data-model schema accurate.
+const DATA_TYPE_BY_WA_TYPE = {
+    TextInput: 'string',
+    TextArea: 'string',
+    DatePicker: 'string',
+    Dropdown: 'string',
+    RadioButtonsGroup: 'string',
+    CheckboxGroup: 'array',
+    OptIn: 'boolean',
+};
+
+const exampleValueFor = (dataType) => {
+    if (dataType === 'boolean') return true;
+    if (dataType === 'array') return ['Example'];
+    return 'Example';
+};
+
 // Only nodes with a "name" (TextInput, Dropdown, DatePicker, etc.) hold a user answer worth forwarding.
 const ownFieldsOf = (formChildren, screenIndex) => formChildren
     .filter((node) => typeof node.name === 'string')
-    .map((node) => ({ key: payloadKey(screenIndex, node.name), formRef: `\${form.${node.name}}` }));
+    .map((node) => ({
+        key: payloadKey(screenIndex, node.name),
+        formRef: `\${form.${node.name}}`,
+        dataType: DATA_TYPE_BY_WA_TYPE[node.type] ?? 'string',
+    }));
 
 // The payload sent on navigate/complete: this screen's own answers, then everything forwarded from earlier screens.
 const buildPayload = (ownFields, forwardedEntries) => {
@@ -37,8 +58,12 @@ const buildFooter = (screens, screenIndex, ownFields, forwardedEntries) => {
 };
 
 // Declares the shape of the data a screen expects to receive, i.e. everything forwarded from earlier screens.
-const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, { key }) => {
-    schema[key] = { '__example__': 'Example', type: 'string' };
+const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, { key, dataType }) => {
+    schema[key] = {
+        '__example__': exampleValueFor(dataType),
+        type: dataType,
+        ...(dataType === 'array' ? { items: { type: 'string' } } : {}),
+    };
     return schema;
 }, {});
 
