@@ -1,5 +1,5 @@
 .palette-container {
-    background-color: rgb(204, 206, 206);
+    background-color: var(--color-surface);
     object-fit: contain;
     display: flex;
     flex-direction: column;
@@ -9,7 +9,10 @@
     height: 745px;
     overflow-x: hidden;
     overflow-y: scroll;
-    border: 1px black solid;
-    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 16px 0;
+    gap: 4px;
     scrollbar-width: thin;
 }

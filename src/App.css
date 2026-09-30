@@ -1,7 +1,9 @@
 .app-container {
   display: flex;
   flex-direction: row;
-  justify-content: space-around;
+  justify-content: center;
   align-items: flex-start;
-  margin-top: 50px;
+  gap: 32px;
+  min-height: 100vh;
+  padding: 40px 24px;
 }

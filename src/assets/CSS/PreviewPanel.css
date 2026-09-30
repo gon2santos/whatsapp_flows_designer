@@ -7,20 +7,35 @@
 
 .preview-tabs {
     display: flex;
-    width: 100%;
+    width: 500px;
+    max-width: 100%;
+    background-color: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    gap: 4px;
 }
 
 .preview-tab {
-    background-color: rgb(204, 206, 206);
-    border: 1px solid black;
-    border-radius: 6px 6px 0 0;
-    padding: 6px 16px;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
     cursor: pointer;
     font: inherit;
+    font-weight: 500;
+    color: var(--color-text-muted);
     width: 100%;
+    transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.preview-tab:hover {
+    color: var(--color-text);
 }
 
 .preview-tab.active {
-    background-color: white;
-    font-weight: bold;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
 }

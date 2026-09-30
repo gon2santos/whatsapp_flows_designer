@@ -1,60 +1,124 @@
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    animation: overlay-fade-in var(--transition-base);
+}
+
+@keyframes overlay-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
-    background-color: white;
-    border-radius: 10px;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-lg);
     width: 400px;
     max-width: 90vw;
     max-height: 80vh;
     overflow-y: auto;
-    padding: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    animation: modal-pop-in var(--transition-base);
+}
+
+@keyframes modal-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
 .modal-header h2 {
     margin: 0;
     font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text);
 }
 
 .modal-close {
     background: none;
     border: none;
     font-size: 20px;
-    cursor: pointer;
     line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.modal-close:hover {
+    background-color: var(--color-surface-alt);
+    color: var(--color-text);
 }
 
 .config-panel label {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
 }
 
 .config-panel input[type="text"],
 .config-panel textarea {
     display: block;
     width: 100%;
-    margin-top: 4px;
-    padding: 6px 8px;
+    margin-top: 6px;
+    padding: 9px 12px;
     box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     font: inherit;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.config-panel input[type="text"]:focus,
+.config-panel textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.config-panel button[type="submit"] {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 9px 18px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.config-panel button[type="submit"]:hover {
+    background-color: var(--color-primary-dark);
 }
 
 .config-checkbox {
@@ -65,6 +129,24 @@
 
 .config-checkbox input {
     margin: 0;
+    accent-color: var(--color-primary);
+}
+
+.config-panel>button[type="button"] {
+    background-color: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-accent);
+    font: inherit;
+    font-weight: 500;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.config-panel>button[type="button"]:hover {
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary);
 }
 
 .config-options {
@@ -87,4 +169,15 @@
 .config-option-row button {
     flex-shrink: 0;
     cursor: pointer;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    padding: 6px 10px;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.config-option-row button:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
 }
