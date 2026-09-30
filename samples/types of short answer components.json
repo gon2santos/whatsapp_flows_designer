@@ -1,0 +1,85 @@
+{
+    "screens": [
+        {
+            "data": {},
+            "id": "screen_zyuomz",
+            "layout": {
+                "children": [
+                    {
+                        "children": [
+                            {
+                                "input-type": "text",
+                                "label": "Ingrese su respuesta",
+                                "name": "Ingrese_su_respuesta_2b7f8f",
+                                "required": true,
+                                "type": "TextInput",
+                                "helper-text": "Por favor ingrese los datos solicitados"
+                            },
+                            {
+                                "input-type": "password",
+                                "label": "Confirm password",
+                                "name": "Confirm_password_84020f",
+                                "required": true,
+                                "type": "TextInput",
+                                "helper-text": "must be at least 16 characters long"
+                            },
+                            {
+                                "input-type": "email",
+                                "label": "Email",
+                                "name": "Email_02f6c0",
+                                "required": true,
+                                "type": "TextInput",
+                                "helper-text": "Por favor ingrese un email valido"
+                            },
+                            {
+                                "input-type": "number",
+                                "label": "Edad",
+                                "name": "Edad_ac2dd1",
+                                "required": true,
+                                "type": "TextInput",
+                                "helper-text": "Por favor ingrese solo números"
+                            },
+                            {
+                                "input-type": "passcode",
+                                "label": "Enter passcode",
+                                "name": "Enter_passcode_c53a1b",
+                                "required": true,
+                                "type": "TextInput",
+                                "helper-text": "Please enter your numeric passcode"
+                            },
+                            {
+                                "input-type": "phone",
+                                "label": "Telefono",
+                                "name": "Telefono_d46d80",
+                                "required": true,
+                                "type": "TextInput",
+                                "helper-text": "Por favor ingrese su número telefónico"
+                            },
+                            {
+                                "label": "Continue",
+                                "on-click-action": {
+                                    "name": "complete",
+                                    "payload": {
+                                        "screen_0_Ingrese_su_respuesta_0": "${form.Ingrese_su_respuesta_2b7f8f}",
+                                        "screen_0_Confirm_password_1": "${form.Confirm_password_84020f}",
+                                        "screen_0_Email_2": "${form.Email_02f6c0}",
+                                        "screen_0_Edad_3": "${form.Edad_ac2dd1}",
+                                        "screen_0_Enter_passcode_4": "${form.Enter_passcode_c53a1b}",
+                                        "screen_0_Telefono_5": "${form.Telefono_d46d80}"
+                                    }
+                                },
+                                "type": "Footer"
+                            }
+                        ],
+                        "name": "flow_path",
+                        "type": "Form"
+                    }
+                ],
+                "type": "SingleColumnLayout"
+            },
+            "terminal": true,
+            "title": "screen"
+        }
+    ],
+    "version": "7.3"
+}
