@@ -63,7 +63,7 @@ const nodeDefinitions = [
             const pattern = SHORT_ANSWER_PATTERN[inputType];
             return {
                 type: 'TextInput', 'input-type': SHORT_ANSWER_WA_INPUT_TYPE[inputType] ?? inputType, label: labelField(config), name, required: !!config.required,
-                'helper-text': SHORT_ANSWER_HELPER_TEXT[inputType] ?? SHORT_ANSWER_HELPER_TEXT.text,
+                'helper-text': config.helperText || SHORT_ANSWER_HELPER_TEXT[inputType] || SHORT_ANSWER_HELPER_TEXT.text,
                 ...(pattern ? { pattern } : {}),
             };
         },
@@ -76,6 +76,7 @@ const nodeDefinitions = [
         defaultConfig: { label: '', required: false },
         toJson: (config, { name }) => ({
             type: 'TextArea', label: labelField(config), name, required: !!config.required,
+            ...(config.helperText ? { 'helper-text': config.helperText } : {}),
         }),
     },
     {
@@ -86,6 +87,7 @@ const nodeDefinitions = [
         defaultConfig: { label: '', required: false },
         toJson: (config, { name }) => ({
             type: 'DatePicker', label: labelField(config), name, required: !!config.required,
+            ...(config.helperText ? { 'helper-text': config.helperText } : {}),
         }),
     },
     {

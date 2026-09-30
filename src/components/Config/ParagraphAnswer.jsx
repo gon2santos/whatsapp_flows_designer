@@ -1,13 +1,25 @@
+const INSTRUCTIONS_MAX_LENGTH = 80;
+
 const ParagraphAnswer = ({ config, onChange }) => {
     return (
         <div className="config-panel">
             <label>
                 Label
-                <textarea
-                    rows={3}
+                <input
+                    type="text"
                     value={config.label ?? ''}
                     onChange={(event) => onChange({ ...config, label: event.target.value })}
                     placeholder="e.g. Tell us more..."
+                />
+            </label>
+            <label>
+                Instructions
+                <input
+                    type="text"
+                    value={config.helperText ?? ''}
+                    maxLength={INSTRUCTIONS_MAX_LENGTH}
+                    onChange={(event) => onChange({ ...config, helperText: event.target.value })}
+                    placeholder="e.g. Please enter the requested details"
                 />
             </label>
             <label className="config-checkbox">

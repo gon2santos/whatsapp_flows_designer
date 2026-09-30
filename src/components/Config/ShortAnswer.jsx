@@ -7,6 +7,8 @@ const INPUT_TYPE_OPTIONS = [
     { value: 'phone', label: 'Phone' },
 ];
 
+const INSTRUCTIONS_MAX_LENGTH = 80;
+
 const ShortAnswer = ({ config, onChange }) => {
     return (
         <div className="config-panel">
@@ -29,6 +31,16 @@ const ShortAnswer = ({ config, onChange }) => {
                         <option key={value} value={value}>{label}</option>
                     ))}
                 </select>
+            </label>
+            <label>
+                Instructions
+                <input
+                    type="text"
+                    value={config.helperText ?? ''}
+                    maxLength={INSTRUCTIONS_MAX_LENGTH}
+                    onChange={(event) => onChange({ ...config, helperText: event.target.value })}
+                    placeholder="e.g. Please enter the requested details"
+                />
             </label>
             <label className="config-checkbox">
                 <input

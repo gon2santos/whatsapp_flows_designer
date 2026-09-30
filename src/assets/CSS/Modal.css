@@ -84,7 +84,8 @@
 }
 
 .config-panel input[type="text"],
-.config-panel textarea {
+.config-panel textarea,
+.config-panel select {
     display: block;
     width: 100%;
     margin-top: 6px;
@@ -99,7 +100,8 @@
 }
 
 .config-panel input[type="text"]:focus,
-.config-panel textarea:focus {
+.config-panel textarea:focus,
+.config-panel select:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-light);
