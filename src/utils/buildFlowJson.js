@@ -3,13 +3,15 @@ import nodeDefinitions from '../data/nodeDefinitions'
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
 
 // Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
+// A user-provided config.id overrides the auto-generated item.name as the payload/form field key.
 const buildFormChildren = (items) => items
     .filter((item) => !item.isPreview)
-    .map((item) => findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.name }))
+    .map((item) => findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.config?.id || item.name }))
     .filter(Boolean);
 
 // Payload key used to carry a screen's answer forward through the navigate/complete chain.
-const payloadKey = (screenIndex, fieldName) => `screen_${screenIndex}_${fieldName}`;
+const screenSlug = (screenName) => screenName.replace(/\s+/g, '_');
+const payloadKey = (screenName, fieldName) => `${screenSlug(screenName)}_${fieldName}`;
 
 // The runtime value type each WhatsApp Flow component produces, used to keep the forwarded data-model schema accurate.
 const DATA_TYPE_BY_WA_TYPE = {
@@ -29,10 +31,10 @@ const exampleValueFor = (dataType) => {
 };
 
 // Only nodes with a "name" (TextInput, Dropdown, DatePicker, etc.) hold a user answer worth forwarding.
-const ownFieldsOf = (formChildren, screenIndex) => formChildren
+const ownFieldsOf = (formChildren, screenName) => formChildren
     .filter((node) => typeof node.name === 'string')
     .map((node) => ({
-        key: payloadKey(screenIndex, node.name),
+        key: payloadKey(screenName, node.name),
         formRef: `\${form.${node.name}}`,
         dataType: DATA_TYPE_BY_WA_TYPE[node.type] ?? 'string',
     }));
@@ -69,7 +71,7 @@ const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, {
 
 const buildScreen = (screen, screens, screenIndex, forwardedEntries) => {
     const formChildren = buildFormChildren(screen.items);
-    const ownFields = ownFieldsOf(formChildren, screenIndex);
+    const ownFields = ownFieldsOf(formChildren, screen.name);
     const footer = buildFooter(screens, screenIndex, ownFields, forwardedEntries);
 
     return {
