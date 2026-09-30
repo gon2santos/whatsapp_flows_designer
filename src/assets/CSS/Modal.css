@@ -124,9 +124,10 @@
 }
 
 .config-checkbox {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 6px;
+    margin-top: 8px;
 }
 
 .config-checkbox input {
