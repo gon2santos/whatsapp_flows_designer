@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/react'
 import FormItem from '../views/FormItem'
 import FormItemPreview from '../views/FormItemPreview'
 
-const Screen = ({ items, onConfigChange }) => {
+const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
     const { ref } = useDroppable({ id: 'screen-drop-zone' });
 
     return (
@@ -20,6 +20,9 @@ const Screen = ({ items, onConfigChange }) => {
                             title={item.title}
                             config={item.config}
                             onConfigChange={onConfigChange}
+                            screens={screens}
+                            activeScreenId={activeScreenId}
+                            onPruneLinkedScreen={onPruneLinkedScreen}
                         />
                     )
             ))}

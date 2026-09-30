@@ -2,9 +2,13 @@ import { useState } from 'react'
 import { isSortable } from '@dnd-kit/react/sortable'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from '../utils/slugify'
+import { collectLinkedScreenIds, LINKED_SCREEN_ALLOWED_TYPES } from '../utils/linkedScreens'
 
 // Placeholder id used to preview where a node dragged from the palette will land.
 const PREVIEW_ID = '__palette-preview__';
+
+// A screen linked from an OptIn's "Leer más" only renders alongside the main flow, so it may only hold static content.
+const LINKED_SCREEN_RESTRICTION_MESSAGE = 'En una pantalla enlazada a un Opt In solo se pueden agregar nodos de Text Caption, Text Body, Small Header, Large Header e Image.';
 
 // Builds a real node from a committed preview: stable field name + the type's default editable config.
 const createNodeFromPreview = (preview) => {
@@ -39,9 +43,11 @@ const createScreen = (name) => ({ id: createScreenId(), name, items: [] });
 export const useFormBuilder = () => {
     const [screens, setScreens] = useState([]);
     const [activeScreenId, setActiveScreenId] = useState(null);
+    const [restrictedDropMessage, setRestrictedDropMessage] = useState(null);
 
     const activeScreen = screens.find((screen) => screen.id === activeScreenId) ?? null;
     const items = activeScreen?.items ?? [];
+    const dismissRestrictedDropMessage = () => setRestrictedDropMessage(null);
 
     // Nodes are only ever added/reordered on the active screen; there is nothing to drop into without one.
     const updateActiveScreenItems = (updater) => {
@@ -79,6 +85,15 @@ export const useFormBuilder = () => {
         setScreens((currentScreens) => currentScreens.map((screen) => (
             screen.items.some((item) => item.id === itemId)
                 ? { ...screen, items: screen.items.map((item) => (item.id === itemId ? { ...item, config: newConfig } : item)) }
+                : screen
+        )));
+    };
+
+    // Drops any node type that isn't allowed once a screen becomes an OptIn's "Leer más" target.
+    const pruneDisallowedNodes = (screenId) => {
+        setScreens((currentScreens) => currentScreens.map((screen) => (
+            screen.id === screenId
+                ? { ...screen, items: screen.items.filter((item) => LINKED_SCREEN_ALLOWED_TYPES.includes(item.type)) }
                 : screen
         )));
     };
@@ -150,8 +165,12 @@ export const useFormBuilder = () => {
 
         if (source.data?.fromPalette) {
             const shouldCommit = isPointerInsideScreen(position?.current);
+            const isActiveScreenLinked = collectLinkedScreenIds(screens).has(activeScreenId);
+            const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(source.data.type);
+            if (shouldCommit && !isTypeAllowed) setRestrictedDropMessage(LINKED_SCREEN_RESTRICTION_MESSAGE);
+
             updateActiveScreenItems((currentItems) => (
-                shouldCommit
+                shouldCommit && isTypeAllowed
                     ? currentItems.map((item) => (
                         item.id === PREVIEW_ID ? createNodeFromPreview(item) : item
                     ))
@@ -188,8 +207,11 @@ export const useFormBuilder = () => {
         selectScreen,
         renameScreen,
         updateItemConfig,
+        pruneDisallowedNodes,
         handleDragOver,
         handleDragEnd,
+        restrictedDropMessage,
+        dismissRestrictedDropMessage,
     };
 };
 

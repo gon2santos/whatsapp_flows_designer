@@ -1,13 +1,31 @@
 import nodeDefinitions from '../data/nodeDefinitions'
+import { collectLinkedScreenIds } from './linkedScreens'
 
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
+
+// WhatsApp Flow requires OptIn "read more" targets to use this id prefix and stay out of the main flow.
+const LINKED_SCREEN_ID_PREFIX = 'OPTIN_SCREEN_';
+
+// Points an OptIn node's own on-click-action at the linked screen's final (prefixed) id.
+const withLinkedScreenId = (node) => (
+    node['on-click-action']?.next?.name
+        ? {
+            ...node,
+            'on-click-action': {
+                ...node['on-click-action'],
+                next: { ...node['on-click-action'].next, name: `${LINKED_SCREEN_ID_PREFIX}${node['on-click-action'].next.name}` },
+            },
+        }
+        : node
+);
 
 // Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
 // A user-provided config.id overrides the auto-generated item.name as the payload/form field key.
 const buildFormChildren = (items) => items
     .filter((item) => !item.isPreview)
     .map((item) => findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.config?.id || item.name }))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(withLinkedScreenId);
 
 // Payload key used to carry a screen's answer forward through the navigate/complete chain.
 const screenSlug = (screenName) => screenName.replace(/\s+/g, '_');
@@ -91,16 +109,34 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries) => {
     };
 };
 
+// OptIn link targets have no Footer, aren't terminal, and don't need any forwarded data schema.
+const buildLinkedScreen = (screen) => ({
+    id: `${LINKED_SCREEN_ID_PREFIX}${screen.id}`,
+    title: screen.name,
+    data: {},
+    layout: {
+        type: 'SingleColumnLayout',
+        children: [
+            { type: 'Form', name: 'flow_path', children: buildFormChildren(screen.items) },
+        ],
+    },
+});
+
 // Builds the full WhatsApp Flow JSON document from the current screens/items state.
 export const buildFlowJson = (screens) => {
-    let forwardedEntries = [];
+    const linkedScreenIds = collectLinkedScreenIds(screens);
+    const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
+    const linkedScreens = screens.filter((screen) => linkedScreenIds.has(screen.id));
 
-    const builtScreens = screens.map((screen, screenIndex) => {
-        const { screen: builtScreen, ownFields } = buildScreen(screen, screens, screenIndex, forwardedEntries);
+    let forwardedEntries = [];
+    const builtMainScreens = mainScreens.map((screen, screenIndex) => {
+        const { screen: builtScreen, ownFields } = buildScreen(screen, mainScreens, screenIndex, forwardedEntries);
         // Everything this screen owns gets carried forward to every screen after it.
         forwardedEntries = [...forwardedEntries, ...ownFields];
         return builtScreen;
     });
 
-    return { version: '7.3', screens: builtScreens };
+    const builtLinkedScreens = linkedScreens.map(buildLinkedScreen);
+
+    return { version: '7.3', screens: [...builtMainScreens, ...builtLinkedScreens] };
 };

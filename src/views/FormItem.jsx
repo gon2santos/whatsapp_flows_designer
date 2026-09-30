@@ -10,7 +10,7 @@ const sanitizeId = (value) => value.replace(/[^a-zA-Z0-9]/g, '');
 
 // A node placed inside the form; sortable within the 'form' group so it can be reordered.
 // closestCenter avoids the tiny/erratic hit zones of pure shape-overlap detection.
-const FormItem = ({ id, index, type, title, config, onConfigChange }) => {
+const FormItem = ({ id, index, type, title, config, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
     const { ref } = useSortable({ id, index, group: 'form', collisionDetector: closestCenter });
     const [isConfigOpen, setIsConfigOpen] = useState(false);
 
@@ -36,7 +36,15 @@ const FormItem = ({ id, index, type, title, config, onConfigChange }) => {
                             />
                         </label>
                     </div>
-                    {ConfigPanel && <ConfigPanel config={currentConfig} onChange={(newConfig) => onConfigChange(id, newConfig)} />}
+                    {ConfigPanel && (
+                        <ConfigPanel
+                            config={currentConfig}
+                            onChange={(newConfig) => onConfigChange(id, newConfig)}
+                            screens={screens}
+                            activeScreenId={activeScreenId}
+                            onPruneLinkedScreen={onPruneLinkedScreen}
+                        />
+                    )}
                 </Modal>
             )}
         </>

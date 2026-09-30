@@ -128,6 +128,9 @@ const nodeDefinitions = [
         defaultConfig: { label: '', required: false },
         toJson: (config, { name }) => ({
             type: 'OptIn', label: labelField(config), name, required: !!config.required,
+            ...(config.linkedScreenId
+                ? { 'on-click-action': { name: 'navigate', next: { name: config.linkedScreenId, type: 'screen' }, payload: {} } }
+                : {}),
         }),
     },
     {

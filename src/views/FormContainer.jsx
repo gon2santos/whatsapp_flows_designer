@@ -1,7 +1,7 @@
 import '../assets/CSS/Form.css'
 import ScreensContainer from './ScreensContainer'
 
-const FormContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onConfigChange }) => {
+const FormContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onConfigChange, onPruneLinkedScreen }) => {
     return (
         <div className="form-container">
             <ScreensContainer
@@ -13,6 +13,7 @@ const FormContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveSc
                 onSelectScreen={onSelectScreen}
                 onRenameScreen={onRenameScreen}
                 onConfigChange={onConfigChange}
+                onPruneLinkedScreen={onPruneLinkedScreen}
             />
         </div>
     )

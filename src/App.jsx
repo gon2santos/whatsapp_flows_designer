@@ -2,6 +2,7 @@ import './App.css'
 import { DragDropProvider } from '@dnd-kit/react'
 import PaletteContainer from './views/Config/PaletteContainer'
 import PreviewPanel from './views/PreviewPanel'
+import Modal from './components/Modal'
 import { useFormBuilder } from './hooks/useFormBuilder'
 
 function App() {
@@ -14,8 +15,11 @@ function App() {
     selectScreen,
     renameScreen,
     updateItemConfig,
+    pruneDisallowedNodes,
     handleDragOver,
     handleDragEnd,
+    restrictedDropMessage,
+    dismissRestrictedDropMessage,
   } = useFormBuilder();
 
   return (
@@ -31,8 +35,14 @@ function App() {
           onSelectScreen={selectScreen}
           onRenameScreen={renameScreen}
           onConfigChange={updateItemConfig}
+          onPruneLinkedScreen={pruneDisallowedNodes}
         />
       </div>
+      {restrictedDropMessage && (
+        <Modal title="Nodo no permitido" onClose={dismissRestrictedDropMessage}>
+          <p>{restrictedDropMessage}</p>
+        </Modal>
+      )}
     </DragDropProvider>
   )
 }
