@@ -1,3 +1,12 @@
+const INPUT_TYPE_OPTIONS = [
+    { value: 'text', label: 'Text' },
+    { value: 'password', label: 'Password' },
+    { value: 'email', label: 'Email' },
+    { value: 'number', label: 'Number' },
+    { value: 'passcode', label: 'Passcode' },
+    { value: 'phone', label: 'Phone' },
+];
+
 const ShortAnswer = ({ config, onChange }) => {
     return (
         <div className="config-panel">
@@ -9,6 +18,17 @@ const ShortAnswer = ({ config, onChange }) => {
                     onChange={(event) => onChange({ ...config, label: event.target.value })}
                     placeholder="e.g. What's your name?"
                 />
+            </label>
+            <label>
+                Type
+                <select
+                    value={config.inputType ?? 'text'}
+                    onChange={(event) => onChange({ ...config, inputType: event.target.value })}
+                >
+                    {INPUT_TYPE_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                    ))}
+                </select>
             </label>
             <label className="config-checkbox">
                 <input

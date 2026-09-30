@@ -33,6 +33,21 @@ const toDataSource = (options = []) => options
 const textField = (config) => config.text || 'Text';
 const labelField = (config) => config.label || 'Label';
 
+// Helper text shown per short-answer input type, matching WhatsApp Flow's own component library samples.
+const SHORT_ANSWER_HELPER_TEXT = {
+    text: 'Por favor ingrese los datos solicitados',
+    password: 'must be at least 16 characters long',
+    email: 'Por favor ingrese un email valido',
+    number: 'Por favor ingrese solo números',
+    passcode: 'Please enter your numeric passcode',
+    phone: 'Por favor ingrese su número telefónico',
+};
+
+// WhatsApp Flow has no "number"/"passcode" input-type: both render as "text"/"password" with a digits-only pattern.
+const SHORT_ANSWER_WA_INPUT_TYPE = { number: 'text', passcode: 'password' };
+const SHORT_ANSWER_PATTERN = { number: '^[0-9]+$', passcode: '^[0-9]+$' };
+
+
 // Single source of truth shared by the palette and the form, so dropped nodes render with the same icon/title.
 // ConfigComponent is the per-type editor shown in the modal when a form node is double-clicked.
 // defaultConfig seeds a new node's editable values; toJson(config, { name }) renders its WhatsApp Flow JSON node.
@@ -42,10 +57,16 @@ const nodeDefinitions = [
         title: 'Short Answer',
         Icon: ShortAnswer,
         ConfigComponent: ShortAnswerConfig,
-        defaultConfig: { label: '', required: false },
-        toJson: (config, { name }) => ({
-            type: 'TextInput', 'input-type': 'text', label: labelField(config), name, required: !!config.required,
-        }),
+        defaultConfig: { label: '', required: false, inputType: 'text' },
+        toJson: (config, { name }) => {
+            const inputType = config.inputType || 'text';
+            const pattern = SHORT_ANSWER_PATTERN[inputType];
+            return {
+                type: 'TextInput', 'input-type': SHORT_ANSWER_WA_INPUT_TYPE[inputType] ?? inputType, label: labelField(config), name, required: !!config.required,
+                'helper-text': SHORT_ANSWER_HELPER_TEXT[inputType] ?? SHORT_ANSWER_HELPER_TEXT.text,
+                ...(pattern ? { pattern } : {}),
+            };
+        },
     },
     {
         type: 'paragraph-answer',
