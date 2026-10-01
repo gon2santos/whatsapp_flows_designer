@@ -138,10 +138,9 @@ const nodeDefinitions = [
         title: 'Image',
         Icon: Image,
         ConfigComponent: ImageConfig,
-        defaultConfig: { src: '', altText: '' },
+        defaultConfig: { src: '', mimeType: '', fileName: '', height: 200 },
         toJson: (config) => ({
-            type: 'Image', src: config.src || '', 'scale-type': 'contain', height: 200,
-            ...(config.altText ? { 'alt-text': config.altText } : {}),
+            type: 'Image', src: config.src || '', 'scale-type': 'contain', height: Number(config.height) || 200,
         }),
     },
     {

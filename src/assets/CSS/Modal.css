@@ -184,3 +184,61 @@
     color: var(--color-danger);
     border-color: var(--color-danger);
 }
+
+.image-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 140px;
+    padding: 16px;
+    margin-bottom: 10px;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.image-dropzone:hover,
+.image-dropzone--active {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-light);
+}
+
+.image-dropzone-preview {
+    max-width: 100%;
+    max-height: 160px;
+    border-radius: var(--radius-sm);
+}
+
+.image-dropzone-remove {
+    background-color: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-danger);
+    font: inherit;
+    font-weight: 500;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.image-dropzone-remove:hover {
+    border-color: var(--color-danger);
+}
+
+.image-dropzone-error {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--color-danger);
+}
+
+.image-dropzone-hint {
+    margin: 0 0 14px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}
