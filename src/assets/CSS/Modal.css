@@ -268,3 +268,33 @@
     width: auto;
     flex: 1;
 }
+
+.config-condition-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.config-condition-row select {
+    margin-top: 0;
+    width: auto;
+    flex: 1;
+    min-width: 0;
+}
+
+.config-condition-row button {
+    flex-shrink: 0;
+    cursor: pointer;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    padding: 6px 10px;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.config-condition-row button:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}

@@ -19,17 +19,52 @@ const withLinkedScreenId = (node) => (
         : node
 );
 
-// Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
-// A user-provided config.id overrides the auto-generated item.name as the payload/form field key.
-const buildFormChildren = (items) => items
-    .filter((item) => !item.isPreview)
-    .map((item) => findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.config?.id || item.name }))
-    .filter(Boolean)
-    .map(withLinkedScreenId);
-
 // Payload key used to carry a screen's answer forward through the navigate/complete chain.
 const screenSlug = (screenName) => screenName.replace(/\s+/g, '_');
 const payloadKey = (screenName, fieldName) => `${screenSlug(screenName)}_${fieldName}`;
+
+// Maps every item's stable id to where its answer lives: which screen it belongs to, its resolved
+// WhatsApp Flow field name, and the payload key it's forwarded under once it leaves that screen.
+// Needed because a "Visibility" condition can reference a node from an earlier screen.
+const buildItemInfoMap = (screens) => {
+    const itemInfoMap = new Map();
+    screens.forEach((screen) => {
+        screen.items.forEach((item) => {
+            if (item.isPreview) return;
+            const fieldName = item.config?.id || item.name;
+            itemInfoMap.set(item.id, { screenId: screen.id, fieldName, payloadKey: payloadKey(screen.name, fieldName) });
+        });
+    });
+    return itemInfoMap;
+};
+
+// Nests a node inside "If" wrappers for each of its (complete) Visibility conditions, outermost first,
+// matching how WhatsApp Flow requires multiple conditions to be expressed as nested "If" nodes.
+// A condition sourced from the current screen reads "${form.<name>}"; from an earlier screen it must
+// read "${data.<payloadKey>}", since that's the only place the value is available once forwarded.
+const wrapWithVisibility = (node, conditions, currentScreenId, itemInfoMap) => {
+    const validConditions = (conditions ?? []).filter((condition) => condition.nodeId && condition.optionId && itemInfoMap.has(condition.nodeId));
+    return validConditions.reduceRight((child, condition) => {
+        const info = itemInfoMap.get(condition.nodeId);
+        const reference = info.screenId === currentScreenId ? `\${form.${info.fieldName}}` : `\${data.${info.payloadKey}}`;
+        return {
+            type: 'If',
+            condition: `${reference} ${condition.operator === 'not-equals' ? '!=' : '=='} '${condition.optionId}'`,
+            then: [child],
+        };
+    }, node);
+};
+
+// Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
+// A user-provided config.id overrides the auto-generated item.name as the payload/form field key.
+const buildFormChildren = (items, currentScreenId, itemInfoMap) => items
+    .filter((item) => !item.isPreview)
+    .map((item) => {
+        const node = findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.config?.id || item.name });
+        if (!node) return null;
+        return wrapWithVisibility(withLinkedScreenId(node), item.config?.visibilityConditions, currentScreenId, itemInfoMap);
+    })
+    .filter(Boolean);
 
 // The runtime value type each WhatsApp Flow component produces, used to keep the forwarded data-model schema accurate.
 const DATA_TYPE_BY_WA_TYPE = {
@@ -48,8 +83,13 @@ const exampleValueFor = (dataType) => {
     return 'Example';
 };
 
+// Looks through "If" wrappers (added by Visibility conditions) to reach the actual field nodes inside.
+const flattenConditionalNodes = (nodes) => nodes.flatMap((node) => (
+    node.type === 'If' ? flattenConditionalNodes([...(node.then ?? []), ...(node.else ?? [])]) : [node]
+));
+
 // Only nodes with a "name" (TextInput, Dropdown, DatePicker, etc.) hold a user answer worth forwarding.
-const ownFieldsOf = (formChildren, screenName) => formChildren
+const ownFieldsOf = (formChildren, screenName) => flattenConditionalNodes(formChildren)
     .filter((node) => typeof node.name === 'string')
     .map((node) => ({
         key: payloadKey(screenName, node.name),
@@ -112,8 +152,8 @@ const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, {
     return schema;
 }, {});
 
-const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenIds) => {
-    const formChildren = buildFormChildren(screen.items);
+const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenIds, itemInfoMap) => {
+    const formChildren = buildFormChildren(screen.items, screen.id, itemInfoMap);
     const ownFields = ownFieldsOf(formChildren, screen.name);
     const jumpItem = findJumpItem(screen, mainScreenIds);
     const footer = buildFooterWithJump(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem);
@@ -136,14 +176,14 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenI
 };
 
 // OptIn link targets have no Footer, aren't terminal, and don't need any forwarded data schema.
-const buildLinkedScreen = (screen) => ({
+const buildLinkedScreen = (screen, itemInfoMap) => ({
     id: `${LINKED_SCREEN_ID_PREFIX}${screen.id}`,
     title: screen.name,
     data: {},
     layout: {
         type: 'SingleColumnLayout',
         children: [
-            { type: 'Form', name: 'flow_path', children: buildFormChildren(screen.items) },
+            { type: 'Form', name: 'flow_path', children: buildFormChildren(screen.items, screen.id, itemInfoMap) },
         ],
     },
 });
@@ -163,16 +203,17 @@ export const buildFlowJson = (screens) => {
     const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
     const linkedScreens = screens.filter((screen) => linkedScreenIds.has(screen.id));
     const mainScreenIds = new Set(mainScreens.map((screen) => screen.id));
+    const itemInfoMap = buildItemInfoMap(screens);
 
     let forwardedEntries = [];
     const builtMainScreens = mainScreens.map((screen, screenIndex) => {
-        const { screen: builtScreen, ownFields } = buildScreen(screen, mainScreens, screenIndex, forwardedEntries, mainScreenIds);
+        const { screen: builtScreen, ownFields } = buildScreen(screen, mainScreens, screenIndex, forwardedEntries, mainScreenIds, itemInfoMap);
         // Everything this screen owns gets carried forward to every screen after it.
         forwardedEntries = [...forwardedEntries, ...ownFields];
         return builtScreen;
     });
 
-    const builtLinkedScreens = linkedScreens.map(buildLinkedScreen);
+    const builtLinkedScreens = linkedScreens.map((screen) => buildLinkedScreen(screen, itemInfoMap));
     const hasJumps = mainScreens.some((screen) => findJumpItem(screen, mainScreenIds));
 
     return {

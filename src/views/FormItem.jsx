@@ -3,7 +3,9 @@ import { useSortable } from '@dnd-kit/react/sortable'
 import { closestCenter } from '@dnd-kit/collision'
 import Node from './Node'
 import Modal from '../components/Modal'
+import VisibilityConditions from '../components/Config/VisibilityConditions'
 import nodeDefinitions from '../data/nodeDefinitions'
+import { collectVisibilitySources } from '../utils/visibilitySources'
 
 // Strips anything but letters/digits, keeping the "id" field usable as a WhatsApp Flow key.
 const sanitizeId = (value) => value.replace(/[^a-zA-Z0-9]/g, '');
@@ -20,6 +22,7 @@ const FormItem = ({ id, index, type, title, config, onConfigChange, screens, act
     const definition = nodeDefinitions.find((item) => item.type === type);
     const ConfigPanel = definition?.ConfigComponent;
     const currentConfig = config ?? {};
+    const visibilitySources = collectVisibilitySources(screens, activeScreenId, index);
 
     return (
         <>
@@ -48,6 +51,13 @@ const FormItem = ({ id, index, type, title, config, onConfigChange, screens, act
                             screens={screens}
                             activeScreenId={activeScreenId}
                             onPruneLinkedScreen={onPruneLinkedScreen}
+                        />
+                    )}
+                    {visibilitySources.length > 0 && (
+                        <VisibilityConditions
+                            config={currentConfig}
+                            onChange={(newConfig) => onConfigChange(id, newConfig)}
+                            sources={visibilitySources}
                         />
                     )}
                 </Modal>
