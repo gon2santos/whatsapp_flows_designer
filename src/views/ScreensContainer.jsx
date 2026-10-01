@@ -13,10 +13,15 @@ const LinkIcon = () => (
     </svg>
 );
 
-const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onConfigChange, onPruneLinkedScreen }) => {
+const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onConfigChange, onPruneLinkedScreen }) => {
     const [renamingScreenId, setRenamingScreenId] = useState(null);
     const [renameValue, setRenameValue] = useState('');
     const linkedScreenIds = collectLinkedScreenIds(screens);
+    const activeScreen = screens.find((screen) => screen.id === activeScreenId) ?? null;
+    // Terminal status mirrors buildFlowJson: the last screen among the ones not reachable only via an OptIn link.
+    const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
+    const isActiveScreenTerminal = mainScreens.length > 0 && mainScreens[mainScreens.length - 1].id === activeScreenId;
+    const isActiveScreenLinked = linkedScreenIds.has(activeScreenId);
 
     const startRenaming = (screen) => {
         setRenamingScreenId(screen.id);
@@ -64,6 +69,10 @@ const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemov
                         screens={screens}
                         activeScreenId={activeScreenId}
                         onPruneLinkedScreen={onPruneLinkedScreen}
+                        isTerminal={isActiveScreenTerminal}
+                        isLinked={isActiveScreenLinked}
+                        footerLabel={activeScreen?.footerLabel}
+                        onFooterLabelChange={(label) => onFooterLabelChange(activeScreenId, label)}
                     />
                 )
                 : <div className="screens-empty">Agrega una pantalla para comenzar</div>}

@@ -2,8 +2,9 @@ import '../assets/CSS/Screen.css'
 import { useDroppable } from '@dnd-kit/react'
 import FormItem from '../views/FormItem'
 import FormItemPreview from '../views/FormItemPreview'
+import FooterButton from '../views/FooterButton'
 
-const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
+const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange }) => {
     const { ref } = useDroppable({ id: 'screen-drop-zone' });
 
     return (
@@ -26,6 +27,9 @@ const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedS
                         />
                     )
             ))}
+            {!isLinked && (
+                <FooterButton label={footerLabel} isTerminal={isTerminal} onLabelChange={onFooterLabelChange} />
+            )}
         </div>
     )
 }

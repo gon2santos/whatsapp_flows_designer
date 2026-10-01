@@ -38,7 +38,7 @@ const randomLetters = (length) => Array.from({ length }, () => ALPHABET[Math.flo
 // WhatsApp Flow screen ids must only contain letters and underscores (no digits, hyphens, etc.).
 const createScreenId = () => `screen_${randomLetters(10)}`;
 
-const createScreen = (name) => ({ id: createScreenId(), name, items: [] });
+const createScreen = (name) => ({ id: createScreenId(), name, items: [], footerLabel: null });
 
 export const useFormBuilder = () => {
     const [screens, setScreens] = useState([]);
@@ -77,6 +77,13 @@ export const useFormBuilder = () => {
     const renameScreen = (screenId, newName) => {
         setScreens((currentScreens) => currentScreens.map((screen) => (
             screen.id === screenId ? { ...screen, name: newName } : screen
+        )));
+    };
+
+    // null footerLabel means "use the Finalizar/Continuar default" computed from the screen's terminal status.
+    const setFooterLabel = (screenId, label) => {
+        setScreens((currentScreens) => currentScreens.map((screen) => (
+            screen.id === screenId ? { ...screen, footerLabel: label } : screen
         )));
     };
 
@@ -206,6 +213,7 @@ export const useFormBuilder = () => {
         removeScreen,
         selectScreen,
         renameScreen,
+        setFooterLabel,
         updateItemConfig,
         pruneDisallowedNodes,
         handleDragOver,

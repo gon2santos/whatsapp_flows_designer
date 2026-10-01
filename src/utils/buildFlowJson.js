@@ -65,12 +65,12 @@ const buildPayload = (ownFields, forwardedEntries) => {
     return payload;
 };
 
-const buildFooter = (screens, screenIndex, ownFields, forwardedEntries) => {
+const buildFooter = (screen, screens, screenIndex, ownFields, forwardedEntries) => {
     const nextScreen = screens[screenIndex + 1];
     const payload = buildPayload(ownFields, forwardedEntries);
     return {
         type: 'Footer',
-        label: 'Continue',
+        label: screen.footerLabel || (nextScreen ? 'Continuar' : 'Finalizar'),
         'on-click-action': nextScreen
             ? { name: 'navigate', next: { name: nextScreen.id, type: 'screen' }, payload }
             : { name: 'complete', payload },
@@ -90,7 +90,7 @@ const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, {
 const buildScreen = (screen, screens, screenIndex, forwardedEntries) => {
     const formChildren = buildFormChildren(screen.items);
     const ownFields = ownFieldsOf(formChildren, screen.name);
-    const footer = buildFooter(screens, screenIndex, ownFields, forwardedEntries);
+    const footer = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries);
 
     return {
         screen: {

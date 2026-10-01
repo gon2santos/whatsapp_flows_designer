@@ -14,6 +14,7 @@ function App() {
     removeScreen,
     selectScreen,
     renameScreen,
+    setFooterLabel,
     updateItemConfig,
     pruneDisallowedNodes,
     handleDragOver,
@@ -34,6 +35,7 @@ function App() {
           onRemoveScreen={removeScreen}
           onSelectScreen={selectScreen}
           onRenameScreen={renameScreen}
+          onFooterLabelChange={setFooterLabel}
           onConfigChange={updateItemConfig}
           onPruneLinkedScreen={pruneDisallowedNodes}
         />
