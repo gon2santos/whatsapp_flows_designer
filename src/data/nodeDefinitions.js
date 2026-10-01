@@ -27,7 +27,7 @@ import ParagraphAnswerConfig from '../components/Config/ParagraphAnswer'
 // Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries.
 // Falls back to a single dummy "Option" entry when the user hasn't added any real option yet,
 // since WhatsApp Flow requires a non-empty data-source.
-const toDataSource = (options = []) => {
+export const toDataSource = (options = []) => {
     const dataSource = options
         .map((option) => option.trim())
         .filter(Boolean)

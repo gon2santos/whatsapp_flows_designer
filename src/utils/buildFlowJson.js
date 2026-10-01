@@ -65,15 +65,40 @@ const buildPayload = (ownFields, forwardedEntries) => {
     return payload;
 };
 
-const buildFooter = (screen, screens, screenIndex, ownFields, forwardedEntries) => {
+const buildFooter = (screen, screens, screenIndex, ownFields, forwardedEntries, targetScreenIdOverride) => {
     const nextScreen = screens[screenIndex + 1];
+    const targetScreenId = targetScreenIdOverride !== undefined ? targetScreenIdOverride : nextScreen?.id;
     const payload = buildPayload(ownFields, forwardedEntries);
     return {
         type: 'Footer',
-        label: screen.footerLabel || (nextScreen ? 'Continuar' : 'Finalizar'),
-        'on-click-action': nextScreen
-            ? { name: 'navigate', next: { name: nextScreen.id, type: 'screen' }, payload }
+        label: screen.footerLabel || (targetScreenId ? 'Continuar' : 'Finalizar'),
+        'on-click-action': targetScreenId
+            ? { name: 'navigate', next: { name: targetScreenId, type: 'screen' }, payload }
             : { name: 'complete', payload },
+    };
+};
+
+// Node types whose config can hold a "Jump to Screen" conditional (config.jumpCondition = { optionId, screenId }).
+const JUMP_NODE_TYPES = ['dropdown', 'radio'];
+
+// First item on the screen with a valid, resolvable jump condition, if any.
+const findJumpItem = (screen, mainScreenIds) => screen.items.find((item) => {
+    const jump = item.config?.jumpCondition;
+    return JUMP_NODE_TYPES.includes(item.type) && jump?.optionId && jump?.screenId && mainScreenIds.has(jump.screenId);
+});
+
+// Wraps the normal footer in an "If" node that navigates to the jump target when the selected option matches.
+const buildFooterWithJump = (screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem) => {
+    const elseFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries);
+    if (!jumpItem) return elseFooter;
+
+    const fieldName = jumpItem.config?.id || jumpItem.name;
+    const thenFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem.config.jumpCondition.screenId);
+    return {
+        type: 'If',
+        condition: `\${form.${fieldName}} == '${jumpItem.config.jumpCondition.optionId}'`,
+        then: [thenFooter],
+        else: [elseFooter],
     };
 };
 
@@ -87,10 +112,11 @@ const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, {
     return schema;
 }, {});
 
-const buildScreen = (screen, screens, screenIndex, forwardedEntries) => {
+const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenIds) => {
     const formChildren = buildFormChildren(screen.items);
     const ownFields = ownFieldsOf(formChildren, screen.name);
-    const footer = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries);
+    const jumpItem = findJumpItem(screen, mainScreenIds);
+    const footer = buildFooterWithJump(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem);
 
     return {
         screen: {
@@ -122,21 +148,36 @@ const buildLinkedScreen = (screen) => ({
     },
 });
 
+// Every screen a jump/normal-next could lead to, used so WhatsApp Flow can validate non-linear navigation.
+const buildRoutingModel = (mainScreens, mainScreenIds) => mainScreens.reduce((routingModel, screen, screenIndex) => {
+    const jumpItem = findJumpItem(screen, mainScreenIds);
+    const nextScreen = mainScreens[screenIndex + 1];
+    const targets = [...new Set([jumpItem?.config.jumpCondition.screenId, nextScreen?.id].filter(Boolean))];
+    if (targets.length) routingModel[screen.id] = targets;
+    return routingModel;
+}, {});
+
 // Builds the full WhatsApp Flow JSON document from the current screens/items state.
 export const buildFlowJson = (screens) => {
     const linkedScreenIds = collectLinkedScreenIds(screens);
     const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
     const linkedScreens = screens.filter((screen) => linkedScreenIds.has(screen.id));
+    const mainScreenIds = new Set(mainScreens.map((screen) => screen.id));
 
     let forwardedEntries = [];
     const builtMainScreens = mainScreens.map((screen, screenIndex) => {
-        const { screen: builtScreen, ownFields } = buildScreen(screen, mainScreens, screenIndex, forwardedEntries);
+        const { screen: builtScreen, ownFields } = buildScreen(screen, mainScreens, screenIndex, forwardedEntries, mainScreenIds);
         // Everything this screen owns gets carried forward to every screen after it.
         forwardedEntries = [...forwardedEntries, ...ownFields];
         return builtScreen;
     });
 
     const builtLinkedScreens = linkedScreens.map(buildLinkedScreen);
+    const hasJumps = mainScreens.some((screen) => findJumpItem(screen, mainScreenIds));
 
-    return { version: '7.3', screens: [...builtMainScreens, ...builtLinkedScreens] };
+    return {
+        version: '7.3',
+        ...(hasJumps ? { routing_model: buildRoutingModel(mainScreens, mainScreenIds) } : {}),
+        screens: [...builtMainScreens, ...builtLinkedScreens],
+    };
 };

@@ -23,7 +23,8 @@
 .modal-content {
     background-color: var(--color-surface);
     border-radius: var(--radius-lg);
-    width: 400px;
+    width: fit-content;
+    min-width: 400px;
     max-width: 90vw;
     max-height: 80vh;
     overflow-y: auto;
@@ -241,4 +242,29 @@
     font-size: 12px;
     color: var(--color-text-muted);
     line-height: 1.5;
+}
+
+.config-jump-panel {
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-border);
+}
+
+.config-section-title {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.config-jump-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-jump-row select {
+    margin-top: 0;
+    width: auto;
+    flex: 1;
 }
