@@ -25,10 +25,15 @@ import MultipleChoiceConfig from '../components/Config/MultipleChoiceOption'
 import ParagraphAnswerConfig from '../components/Config/ParagraphAnswer'
 
 // Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries.
-const toDataSource = (options = []) => options
-    .map((option) => option.trim())
-    .filter(Boolean)
-    .map((option, index) => ({ id: `${index}_${option.replace(/\s+/g, '_')}`, title: option }));
+// Falls back to a single dummy "Option" entry when the user hasn't added any real option yet,
+// since WhatsApp Flow requires a non-empty data-source.
+const toDataSource = (options = []) => {
+    const dataSource = options
+        .map((option) => option.trim())
+        .filter(Boolean)
+        .map((option, index) => ({ id: `${index}_${option.replace(/\s+/g, '_')}`, title: option }));
+    return dataSource.length ? dataSource : [{ id: '0_Option', title: 'Option' }];
+};
 
 const textField = (config) => config.text || 'Text';
 const labelField = (config) => config.label || 'Label';
