@@ -8,6 +8,9 @@ import nodeDefinitions from '../data/nodeDefinitions'
 // Strips anything but letters/digits, keeping the "id" field usable as a WhatsApp Flow key.
 const sanitizeId = (value) => value.replace(/[^a-zA-Z0-9]/g, '');
 
+// These node types have no "name" in WhatsApp Flow's JSON, so the Id field is irrelevant for them.
+const TYPES_WITHOUT_ID = ['text-caption', 'text-body', 'text-small-heading', 'text-large-heading', 'image'];
+
 // A node placed inside the form; sortable within the 'form' group so it can be reordered.
 // closestCenter avoids the tiny/erratic hit zones of pure shape-overlap detection.
 const FormItem = ({ id, index, type, title, config, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
@@ -25,17 +28,19 @@ const FormItem = ({ id, index, type, title, config, onConfigChange, screens, act
             </Node>
             {isConfigOpen && (
                 <Modal title={title} onClose={() => setIsConfigOpen(false)}>
-                    <div className="config-panel">
-                        <label>
-                            Id
-                            <input
-                                type="text"
-                                value={currentConfig.id ?? ''}
-                                onChange={(event) => onConfigChange(id, { ...currentConfig, id: sanitizeId(event.target.value) })}
-                                placeholder=""
-                            />
-                        </label>
-                    </div>
+                    {!TYPES_WITHOUT_ID.includes(type) && (
+                        <div className="config-panel">
+                            <label>
+                                Id
+                                <input
+                                    type="text"
+                                    value={currentConfig.id ?? ''}
+                                    onChange={(event) => onConfigChange(id, { ...currentConfig, id: sanitizeId(event.target.value) })}
+                                    placeholder=""
+                                />
+                            </label>
+                        </div>
+                    )}
                     {ConfigPanel && (
                         <ConfigPanel
                             config={currentConfig}
