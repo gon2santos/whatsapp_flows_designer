@@ -7,8 +7,8 @@ import VisibilityConditions from '../components/Config/VisibilityConditions'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { collectVisibilitySources } from '../utils/visibilitySources'
 
-// Strips anything but letters/digits, keeping the "id" field usable as a WhatsApp Flow key.
-const sanitizeId = (value) => value.replace(/[^a-zA-Z0-9]/g, '');
+// Strips anything but letters/digits/underscores, turning spaces into underscores to keep the "id" field usable as a WhatsApp Flow key.
+const sanitizeId = (value) => value.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
 
 // These node types have no "name" in WhatsApp Flow's JSON, so the Id field is irrelevant for them.
 const TYPES_WITHOUT_ID = ['text-caption', 'text-body', 'text-small-heading', 'text-large-heading', 'image'];
