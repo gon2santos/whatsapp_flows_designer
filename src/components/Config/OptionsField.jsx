@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 // Reusable label + editable option list, shared by Dropdown/Radio/MultipleChoice configs.
-const OptionsField = ({ config, onChange, addLabel }) => {
+const OptionsField = ({ config, onChange, addLabel, labelMaxLength }) => {
     const options = config.options?.length ? config.options : [''];
     const focusIndexRef = useRef(null);
     const inputRefs = useRef([]);
@@ -31,10 +31,14 @@ const OptionsField = ({ config, onChange, addLabel }) => {
     return (
         <div className="config-panel">
             <label>
-                Label
+                <span className="label-row">
+                    Label
+                    <span className="field-char-counter">{(config.label ?? '').length}/{labelMaxLength}</span>
+                </span>
                 <input
                     type="text"
                     value={config.label ?? ''}
+                    maxLength={labelMaxLength}
                     onChange={(event) => onChange({ ...config, label: event.target.value })}
                     placeholder="Question label"
                 />

@@ -1,13 +1,18 @@
 const INSTRUCTIONS_MAX_LENGTH = 80;
+const LABEL_MAX_LENGTH = 20;
 
 const ParagraphAnswer = ({ config, onChange }) => {
     return (
         <div className="config-panel">
             <label>
-                Label
+                <span className="label-row">
+                    Label
+                    <span className="field-char-counter">{(config.label ?? '').length}/{LABEL_MAX_LENGTH}</span>
+                </span>
                 <input
                     type="text"
                     value={config.label ?? ''}
+                    maxLength={LABEL_MAX_LENGTH}
                     onChange={(event) => onChange({ ...config, label: event.target.value })}
                     placeholder="e.g. Tell us more..."
                 />
