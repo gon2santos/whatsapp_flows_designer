@@ -29,6 +29,21 @@ const createNodeFromPreview = (preview) => {
     };
 };
 
+// Builds a copy of an existing node (Alt-drag clone): keeps every config value, only the id/name are regenerated.
+const createClonedNode = (preview) => {
+    const id = crypto.randomUUID();
+    return {
+        id,
+        type: preview.type,
+        title: preview.title,
+        name: `${slugify(preview.title)}_${id.slice(0, 8)}`,
+        config: { ...preview.cloneConfig },
+    };
+};
+
+// A dropped preview came either from the palette (fresh default config) or from an Alt-drag clone of an existing node.
+const createItemFromPreview = (preview) => (preview.cloneConfig ? createClonedNode(preview) : createNodeFromPreview(preview));
+
 // The white screen area is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
 const isPointerInsideScreen = (position) => {
     if (!position) return false;
@@ -115,7 +130,8 @@ export const useFormBuilder = () => {
         if (!activeScreenId) return;
 
         const { source, target, position } = event.operation;
-        if (!source?.data?.fromPalette) return;
+        const cloneSource = source?.data?.cloneSource;
+        if (!source?.data?.fromPalette && !cloneSource) return;
 
         updateActiveScreenItems((currentItems) => {
             const previewIndex = currentItems.findIndex((item) => item.id === PREVIEW_ID);
@@ -161,7 +177,9 @@ export const useFormBuilder = () => {
             // Skip the update when the insertion point hasn't actually changed, to avoid jerky re-renders.
             if (targetIndex === previewIndex) return currentItems;
 
-            const preview = { id: PREVIEW_ID, type: source.data.type, title: source.data.title, isPreview: true };
+            const preview = cloneSource
+                ? { id: PREVIEW_ID, type: cloneSource.type, title: cloneSource.title, cloneConfig: cloneSource.config, isPreview: true }
+                : { id: PREVIEW_ID, type: source.data.type, title: source.data.title, isPreview: true };
             const newItems = [...withoutPreview];
             newItems.splice(targetIndex, 0, preview);
             return newItems;
@@ -179,10 +197,12 @@ export const useFormBuilder = () => {
         const { source, position } = event.operation;
         if (!source) return;
 
-        if (source.data?.fromPalette) {
+        const cloneSource = source.data?.cloneSource;
+        if (source.data?.fromPalette || cloneSource) {
+            const draggedType = cloneSource ? cloneSource.type : source.data.type;
             const shouldCommit = isPointerInsideScreen(position?.current);
             const isActiveScreenLinked = collectLinkedScreenIds(screens).has(activeScreenId);
-            const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(source.data.type);
+            const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(draggedType);
             const realItemCount = countNodeSlots((screens.find((screen) => screen.id === activeScreenId)?.items ?? [])
                 .filter((item) => item.id !== PREVIEW_ID));
             const hasRoom = realItemCount < MAX_NODES_PER_SCREEN;
@@ -191,7 +211,7 @@ export const useFormBuilder = () => {
             updateActiveScreenItems((currentItems) => (
                 shouldCommit && isTypeAllowed && hasRoom
                     ? currentItems.map((item) => (
-                        item.id === PREVIEW_ID ? createNodeFromPreview(item) : item
+                        item.id === PREVIEW_ID ? createItemFromPreview(item) : item
                     ))
                     : currentItems.filter((item) => item.id !== PREVIEW_ID)
             ));
