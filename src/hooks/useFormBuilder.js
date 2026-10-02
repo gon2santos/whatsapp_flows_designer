@@ -16,6 +16,12 @@ export const countNodeSlots = (items) => items.reduce((total, item) => total + (
 // A screen linked from an OptIn's "Leer más" only renders alongside the main flow, so it may only hold static content.
 const LINKED_SCREEN_RESTRICTION_MESSAGE = 'En una pantalla enlazada a un Opt In solo se pueden agregar nodos de Text Caption, Text Body, Small Header, Large Header e Image.';
 
+// WhatsApp Flow screens can't hold more than 5 OptIn nodes.
+const MAX_OPTIN_PER_SCREEN = 5;
+const OPTIN_TYPE = 'opt-in';
+const OPTIN_LIMIT_MESSAGE = `No se pueden agregar más de ${MAX_OPTIN_PER_SCREEN} nodos OptIn en una misma pantalla.`;
+const countOptInNodes = (items) => items.filter((item) => item.type === OPTIN_TYPE).length;
+
 // Builds a real node from a committed preview: stable field name + the type's default editable config.
 const createNodeFromPreview = (preview) => {
     const id = crypto.randomUUID();
@@ -132,6 +138,7 @@ export const useFormBuilder = () => {
         const { source, target, position } = event.operation;
         const cloneSource = source?.data?.cloneSource;
         if (!source?.data?.fromPalette && !cloneSource) return;
+        const draggedType = cloneSource ? cloneSource.type : source.data.type;
 
         updateActiveScreenItems((currentItems) => {
             const previewIndex = currentItems.findIndex((item) => item.id === PREVIEW_ID);
@@ -139,6 +146,9 @@ export const useFormBuilder = () => {
 
             // Screen is already full: don't even preview the incoming node, it would be banished on drop anyway.
             if (countNodeSlots(withoutPreview) >= MAX_NODES_PER_SCREEN) return withoutPreview;
+
+            // Same for the OptIn-specific cap: no point previewing a 6th OptIn node.
+            if (draggedType === OPTIN_TYPE && countOptInNodes(withoutPreview) >= MAX_OPTIN_PER_SCREEN) return withoutPreview;
 
             if (!target) return withoutPreview;
 
@@ -203,13 +213,16 @@ export const useFormBuilder = () => {
             const shouldCommit = isPointerInsideScreen(position?.current);
             const isActiveScreenLinked = collectLinkedScreenIds(screens).has(activeScreenId);
             const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(draggedType);
-            const realItemCount = countNodeSlots((screens.find((screen) => screen.id === activeScreenId)?.items ?? [])
-                .filter((item) => item.id !== PREVIEW_ID));
+            const screenItems = (screens.find((screen) => screen.id === activeScreenId)?.items ?? [])
+                .filter((item) => item.id !== PREVIEW_ID);
+            const realItemCount = countNodeSlots(screenItems);
             const hasRoom = realItemCount < MAX_NODES_PER_SCREEN;
+            const isOptInAllowed = draggedType !== OPTIN_TYPE || countOptInNodes(screenItems) < MAX_OPTIN_PER_SCREEN;
             if (shouldCommit && !isTypeAllowed) setRestrictedDropMessage(LINKED_SCREEN_RESTRICTION_MESSAGE);
+            else if (shouldCommit && !isOptInAllowed) setRestrictedDropMessage(OPTIN_LIMIT_MESSAGE);
 
             updateActiveScreenItems((currentItems) => (
-                shouldCommit && isTypeAllowed && hasRoom
+                shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed
                     ? currentItems.map((item) => (
                         item.id === PREVIEW_ID ? createItemFromPreview(item) : item
                     ))
