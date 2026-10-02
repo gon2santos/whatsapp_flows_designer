@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { handleMarkdownShortcut } from '../../utils/markdownShortcuts'
 
 // Reusable label + editable option list, shared by Dropdown/Radio/MultipleChoice configs.
 const OptionsField = ({ config, onChange, addLabel, labelMaxLength }) => {
@@ -41,6 +42,16 @@ const OptionsField = ({ config, onChange, addLabel, labelMaxLength }) => {
                     maxLength={labelMaxLength}
                     onChange={(event) => onChange({ ...config, label: event.target.value })}
                     placeholder="Question label"
+                />
+            </label>
+            <label>
+                Top text: <span className="label-optional">(optional)</span>
+                <textarea
+                    rows={3}
+                    value={config.topText ?? ''}
+                    onChange={(event) => onChange({ ...config, topText: event.target.value })}
+                    onKeyDown={(event) => handleMarkdownShortcut(event, config.topText ?? '', (topText) => onChange({ ...config, topText }))}
+                    placeholder="Text shown above this field"
                 />
             </label>
             <div className="config-options">

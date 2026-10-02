@@ -96,6 +96,11 @@
     color: var(--color-text-muted);
 }
 
+.config-panel .label-optional {
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
 .config-panel input[type="text"],
 .config-panel textarea,
 .config-panel select {

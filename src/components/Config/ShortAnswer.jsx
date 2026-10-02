@@ -1,3 +1,5 @@
+import { handleMarkdownShortcut } from '../../utils/markdownShortcuts'
+
 const INPUT_TYPE_OPTIONS = [
     { value: 'text', label: 'Text' },
     { value: 'password', label: 'Password' },
@@ -24,6 +26,16 @@ const ShortAnswer = ({ config, onChange }) => {
                     maxLength={LABEL_MAX_LENGTH}
                     onChange={(event) => onChange({ ...config, label: event.target.value })}
                     placeholder="e.g. What's your name?"
+                />
+            </label>
+            <label>
+                Top text: <span className="label-optional">(optional)</span>
+                <textarea
+                    rows={3}
+                    value={config.topText ?? ''}
+                    onChange={(event) => onChange({ ...config, topText: event.target.value })}
+                    onKeyDown={(event) => handleMarkdownShortcut(event, config.topText ?? '', (topText) => onChange({ ...config, topText }))}
+                    placeholder="Text shown above this field"
                 />
             </label>
             <label>
