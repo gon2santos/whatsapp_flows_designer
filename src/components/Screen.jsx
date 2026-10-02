@@ -3,12 +3,18 @@ import { useDroppable } from '@dnd-kit/react'
 import FormItem from '../views/FormItem'
 import FormItemPreview from '../views/FormItemPreview'
 import FooterButton from '../views/FooterButton'
+import { MAX_NODES_PER_SCREEN } from '../hooks/useFormBuilder'
 
 const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange }) => {
     const { ref } = useDroppable({ id: 'screen-drop-zone' });
+    const nodeCount = items.filter((item) => !item.isPreview).length;
+    const isAtLimit = nodeCount >= MAX_NODES_PER_SCREEN;
 
     return (
         <div className="screen" ref={ref}>
+            <div className={`screen-node-counter${isAtLimit ? ' screen-node-counter--limit' : ''}`}>
+                {nodeCount}/{MAX_NODES_PER_SCREEN}
+            </div>
             {items.map((item, index) => (
                 item.isPreview
                     ? <FormItemPreview key={item.id} type={item.type} title={item.title} />
