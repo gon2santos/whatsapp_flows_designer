@@ -23,10 +23,12 @@ const FormItem = ({ id, index, type, title, config, onConfigChange, screens, act
     const ConfigPanel = definition?.ConfigComponent;
     const currentConfig = config ?? {};
     const visibilitySources = collectVisibilitySources(screens, activeScreenId, index);
+    // Purely cosmetic: the node card shows the entered label/text (first 50 chars) instead of the generic type name.
+    const displayTitle = (currentConfig.label || currentConfig.text || '').slice(0, 50) || title;
 
     return (
         <>
-            <Node ref={ref} title={title} data-node-id={id} onDoubleClick={() => setIsConfigOpen(true)}>
+            <Node ref={ref} title={displayTitle} data-node-id={id} onDoubleClick={() => setIsConfigOpen(true)}>
                 {definition && <definition.Icon />}
             </Node>
             {isConfigOpen && (
