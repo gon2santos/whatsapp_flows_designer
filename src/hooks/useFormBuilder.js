@@ -10,6 +10,9 @@ const PREVIEW_ID = '__palette-preview__';
 // WhatsApp Flow screens are capped at 50 components.
 export const MAX_NODES_PER_SCREEN = 50;
 
+// A node with a filled-in "Top text" also emits a hidden TextBody, so it counts as 2 toward the screen's limit.
+export const countNodeSlots = (items) => items.reduce((total, item) => total + (item.config?.topText?.trim() ? 2 : 1), 0);
+
 // A screen linked from an OptIn's "Leer más" only renders alongside the main flow, so it may only hold static content.
 const LINKED_SCREEN_RESTRICTION_MESSAGE = 'En una pantalla enlazada a un Opt In solo se pueden agregar nodos de Text Caption, Text Body, Small Header, Large Header e Image.';
 
@@ -119,7 +122,7 @@ export const useFormBuilder = () => {
             const withoutPreview = currentItems.filter((item) => item.id !== PREVIEW_ID);
 
             // Screen is already full: don't even preview the incoming node, it would be banished on drop anyway.
-            if (withoutPreview.length >= MAX_NODES_PER_SCREEN) return withoutPreview;
+            if (countNodeSlots(withoutPreview) >= MAX_NODES_PER_SCREEN) return withoutPreview;
 
             if (!target) return withoutPreview;
 
@@ -180,8 +183,8 @@ export const useFormBuilder = () => {
             const shouldCommit = isPointerInsideScreen(position?.current);
             const isActiveScreenLinked = collectLinkedScreenIds(screens).has(activeScreenId);
             const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(source.data.type);
-            const realItemCount = (screens.find((screen) => screen.id === activeScreenId)?.items ?? [])
-                .filter((item) => item.id !== PREVIEW_ID).length;
+            const realItemCount = countNodeSlots((screens.find((screen) => screen.id === activeScreenId)?.items ?? [])
+                .filter((item) => item.id !== PREVIEW_ID));
             const hasRoom = realItemCount < MAX_NODES_PER_SCREEN;
             if (shouldCommit && !isTypeAllowed) setRestrictedDropMessage(LINKED_SCREEN_RESTRICTION_MESSAGE);
 
