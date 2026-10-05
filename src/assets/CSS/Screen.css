@@ -10,6 +10,26 @@
     padding: 10px 0;
 }
 
+.screen-node-counter {
+    align-self: flex-end;
+    position: sticky;
+    top: 8px;
+    right: 12px;
+    margin: 0 12px 8px 0;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill, 999px);
+    background-color: var(--color-border);
+    color: var(--color-text, #333);
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 1;
+}
+
+.screen-node-counter--limit {
+    background-color: #e03131;
+    color: white;
+}
+
 .screen-footer-button {
     width: calc(100% - 170px);
     margin: auto 16px 10px;

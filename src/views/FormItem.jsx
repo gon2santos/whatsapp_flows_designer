@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { useDraggable } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
+import { Feedback } from '@dnd-kit/dom'
 import { closestCenter } from '@dnd-kit/collision'
 import Node from './Node'
 import Modal from '../components/Modal'
 import VisibilityConditions from '../components/Config/VisibilityConditions'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { collectVisibilitySources } from '../utils/visibilitySources'
+import { useAltKeyHeld } from '../hooks/useAltKeyHeld'
 
 // Strips anything but letters/digits/underscores, turning spaces into underscores to keep the "id" field usable as a WhatsApp Flow key.
 const sanitizeId = (value) => value.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
@@ -16,17 +19,30 @@ const TYPES_WITHOUT_ID = ['text-caption', 'text-body', 'text-small-heading', 'te
 // A node placed inside the form; sortable within the 'form' group so it can be reordered.
 // closestCenter avoids the tiny/erratic hit zones of pure shape-overlap detection.
 const FormItem = ({ id, index, type, title, config, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
-    const { ref } = useSortable({ id, index, group: 'form', collisionDetector: closestCenter });
     const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const isAltHeld = useAltKeyHeld();
+    const currentConfig = config ?? {};
+
+    // Normal reordering is disabled while Alt is held; a parallel clone-feedback draggable takes over instead,
+    // leaving the original node untouched and dragging a copy (same data, fresh id/name) to wherever it's dropped.
+    const { ref: sortableRef } = useSortable({ id, index, group: 'form', collisionDetector: closestCenter, disabled: isAltHeld });
+    const { ref: cloneRef } = useDraggable({
+        id: `clone-${id}`,
+        data: { cloneSource: { type, title, config: currentConfig } },
+        disabled: !isAltHeld,
+        plugins: [Feedback.configure({ feedback: 'clone', dropAnimation: null })],
+    });
+    const setRefs = (element) => { sortableRef(element); cloneRef(element); };
 
     const definition = nodeDefinitions.find((item) => item.type === type);
     const ConfigPanel = definition?.ConfigComponent;
-    const currentConfig = config ?? {};
     const visibilitySources = collectVisibilitySources(screens, activeScreenId, index);
+    // Purely cosmetic: the node card shows the entered label/text (first 50 chars) instead of the generic type name.
+    const displayTitle = (currentConfig.label || currentConfig.text || '').slice(0, 50) || title;
 
     return (
         <>
-            <Node ref={ref} title={title} data-node-id={id} onDoubleClick={() => setIsConfigOpen(true)}>
+            <Node ref={setRefs} title={displayTitle} data-node-id={id} onDoubleClick={() => setIsConfigOpen(true)}>
                 {definition && <definition.Icon />}
             </Node>
             {isConfigOpen && (

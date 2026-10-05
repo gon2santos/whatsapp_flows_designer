@@ -1,5 +1,6 @@
 import nodeDefinitions from '../data/nodeDefinitions'
 import { collectLinkedScreenIds } from './linkedScreens'
+import { hasMarkdown } from './markdownShortcuts'
 
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
 
@@ -57,14 +58,20 @@ const wrapWithVisibility = (node, conditions, currentScreenId, itemInfoMap) => {
 
 // Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
 // A user-provided config.id overrides the auto-generated item.name as the payload/form field key.
+// config.topText is rendered as a standalone TextBody right above the node, never shown in the designer's form.
+const buildTopTextNode = (topText) => (
+    hasMarkdown(topText) ? { type: 'TextBody', markdown: true, text: [topText] } : { type: 'TextBody', text: topText }
+);
+
 const buildFormChildren = (items, currentScreenId, itemInfoMap) => items
     .filter((item) => !item.isPreview)
-    .map((item) => {
+    .flatMap((item) => {
         const node = findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.config?.id || item.name });
-        if (!node) return null;
-        return wrapWithVisibility(withLinkedScreenId(node), item.config?.visibilityConditions, currentScreenId, itemInfoMap);
-    })
-    .filter(Boolean);
+        if (!node) return [];
+        const wrapped = wrapWithVisibility(withLinkedScreenId(node), item.config?.visibilityConditions, currentScreenId, itemInfoMap);
+        const topText = item.config?.topText?.trim();
+        return topText ? [buildTopTextNode(topText), wrapped] : [wrapped];
+    });
 
 // The runtime value type each WhatsApp Flow component produces, used to keep the forwarded data-model schema accurate.
 const DATA_TYPE_BY_WA_TYPE = {

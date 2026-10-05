@@ -7,8 +7,20 @@ import { collectLinkedScreenIds, LINKED_SCREEN_ALLOWED_TYPES } from '../utils/li
 // Placeholder id used to preview where a node dragged from the palette will land.
 const PREVIEW_ID = '__palette-preview__';
 
+// WhatsApp Flow screens are capped at 50 components.
+export const MAX_NODES_PER_SCREEN = 50;
+
+// A node with a filled-in "Top text" also emits a hidden TextBody, so it counts as 2 toward the screen's limit.
+export const countNodeSlots = (items) => items.reduce((total, item) => total + (item.config?.topText?.trim() ? 2 : 1), 0);
+
 // A screen linked from an OptIn's "Leer más" only renders alongside the main flow, so it may only hold static content.
 const LINKED_SCREEN_RESTRICTION_MESSAGE = 'En una pantalla enlazada a un Opt In solo se pueden agregar nodos de Text Caption, Text Body, Small Header, Large Header e Image.';
+
+// WhatsApp Flow screens can't hold more than 5 OptIn nodes.
+const MAX_OPTIN_PER_SCREEN = 5;
+const OPTIN_TYPE = 'opt-in';
+const OPTIN_LIMIT_MESSAGE = `No se pueden agregar más de ${MAX_OPTIN_PER_SCREEN} nodos OptIn en una misma pantalla.`;
+const countOptInNodes = (items) => items.filter((item) => item.type === OPTIN_TYPE).length;
 
 // Builds a real node from a committed preview: stable field name + the type's default editable config.
 const createNodeFromPreview = (preview) => {
@@ -22,6 +34,21 @@ const createNodeFromPreview = (preview) => {
         config: { ...defaultConfig },
     };
 };
+
+// Builds a copy of an existing node (Alt-drag clone): keeps every config value, only the id/name are regenerated.
+const createClonedNode = (preview) => {
+    const id = crypto.randomUUID();
+    return {
+        id,
+        type: preview.type,
+        title: preview.title,
+        name: `${slugify(preview.title)}_${id.slice(0, 8)}`,
+        config: { ...preview.cloneConfig },
+    };
+};
+
+// A dropped preview came either from the palette (fresh default config) or from an Alt-drag clone of an existing node.
+const createItemFromPreview = (preview) => (preview.cloneConfig ? createClonedNode(preview) : createNodeFromPreview(preview));
 
 // The white screen area is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
 const isPointerInsideScreen = (position) => {
@@ -109,11 +136,19 @@ export const useFormBuilder = () => {
         if (!activeScreenId) return;
 
         const { source, target, position } = event.operation;
-        if (!source?.data?.fromPalette) return;
+        const cloneSource = source?.data?.cloneSource;
+        if (!source?.data?.fromPalette && !cloneSource) return;
+        const draggedType = cloneSource ? cloneSource.type : source.data.type;
 
         updateActiveScreenItems((currentItems) => {
             const previewIndex = currentItems.findIndex((item) => item.id === PREVIEW_ID);
             const withoutPreview = currentItems.filter((item) => item.id !== PREVIEW_ID);
+
+            // Screen is already full: don't even preview the incoming node, it would be banished on drop anyway.
+            if (countNodeSlots(withoutPreview) >= MAX_NODES_PER_SCREEN) return withoutPreview;
+
+            // Same for the OptIn-specific cap: no point previewing a 6th OptIn node.
+            if (draggedType === OPTIN_TYPE && countOptInNodes(withoutPreview) >= MAX_OPTIN_PER_SCREEN) return withoutPreview;
 
             if (!target) return withoutPreview;
 
@@ -152,7 +187,9 @@ export const useFormBuilder = () => {
             // Skip the update when the insertion point hasn't actually changed, to avoid jerky re-renders.
             if (targetIndex === previewIndex) return currentItems;
 
-            const preview = { id: PREVIEW_ID, type: source.data.type, title: source.data.title, isPreview: true };
+            const preview = cloneSource
+                ? { id: PREVIEW_ID, type: cloneSource.type, title: cloneSource.title, cloneConfig: cloneSource.config, isPreview: true }
+                : { id: PREVIEW_ID, type: source.data.type, title: source.data.title, isPreview: true };
             const newItems = [...withoutPreview];
             newItems.splice(targetIndex, 0, preview);
             return newItems;
@@ -170,16 +207,24 @@ export const useFormBuilder = () => {
         const { source, position } = event.operation;
         if (!source) return;
 
-        if (source.data?.fromPalette) {
+        const cloneSource = source.data?.cloneSource;
+        if (source.data?.fromPalette || cloneSource) {
+            const draggedType = cloneSource ? cloneSource.type : source.data.type;
             const shouldCommit = isPointerInsideScreen(position?.current);
             const isActiveScreenLinked = collectLinkedScreenIds(screens).has(activeScreenId);
-            const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(source.data.type);
+            const isTypeAllowed = !isActiveScreenLinked || LINKED_SCREEN_ALLOWED_TYPES.includes(draggedType);
+            const screenItems = (screens.find((screen) => screen.id === activeScreenId)?.items ?? [])
+                .filter((item) => item.id !== PREVIEW_ID);
+            const realItemCount = countNodeSlots(screenItems);
+            const hasRoom = realItemCount < MAX_NODES_PER_SCREEN;
+            const isOptInAllowed = draggedType !== OPTIN_TYPE || countOptInNodes(screenItems) < MAX_OPTIN_PER_SCREEN;
             if (shouldCommit && !isTypeAllowed) setRestrictedDropMessage(LINKED_SCREEN_RESTRICTION_MESSAGE);
+            else if (shouldCommit && !isOptInAllowed) setRestrictedDropMessage(OPTIN_LIMIT_MESSAGE);
 
             updateActiveScreenItems((currentItems) => (
-                shouldCommit && isTypeAllowed
+                shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed
                     ? currentItems.map((item) => (
-                        item.id === PREVIEW_ID ? createNodeFromPreview(item) : item
+                        item.id === PREVIEW_ID ? createItemFromPreview(item) : item
                     ))
                     : currentItems.filter((item) => item.id !== PREVIEW_ID)
             ));
