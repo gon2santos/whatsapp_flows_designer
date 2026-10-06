@@ -153,6 +153,12 @@
     accent-color: var(--color-primary);
 }
 
+.config-field-error {
+    margin: -8px 0 14px;
+    font-size: 13px;
+    color: var(--color-danger);
+}
+
 .config-panel>button[type="button"] {
     background-color: var(--color-surface-alt);
     border: 1px solid var(--color-border);
