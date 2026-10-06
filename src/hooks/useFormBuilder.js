@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { isSortable } from '@dnd-kit/react/sortable'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from '../utils/slugify'
 import { collectLinkedScreenIds, LINKED_SCREEN_ALLOWED_TYPES } from '../utils/linkedScreens'
+import { loadPersistedState, savePersistedState } from '../utils/storage'
+
+// Read once up front: both initial state values below derive from the same stored snapshot.
+const persistedState = loadPersistedState();
 
 // Placeholder id used to preview where a node dragged from the palette will land.
 const PREVIEW_ID = '__palette-preview__';
@@ -68,9 +72,15 @@ const createScreenId = () => `screen_${randomLetters(10)}`;
 const createScreen = (name) => ({ id: createScreenId(), name, items: [], footerLabel: null });
 
 export const useFormBuilder = () => {
-    const [screens, setScreens] = useState([]);
-    const [activeScreenId, setActiveScreenId] = useState(null);
+    const [screens, setScreens] = useState(() => persistedState?.screens ?? []);
+    const [activeScreenId, setActiveScreenId] = useState(() => persistedState?.activeScreenId ?? null);
     const [restrictedDropMessage, setRestrictedDropMessage] = useState(null);
+
+    // Debounced so rapid edits (e.g. typing in a config field) don't hit localStorage on every keystroke.
+    useEffect(() => {
+        const timeoutId = setTimeout(() => savePersistedState(screens, activeScreenId), 400);
+        return () => clearTimeout(timeoutId);
+    }, [screens, activeScreenId]);
 
     const activeScreen = screens.find((screen) => screen.id === activeScreenId) ?? null;
     const items = activeScreen?.items ?? [];
