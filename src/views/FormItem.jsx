@@ -8,6 +8,7 @@ import Modal from '../components/Modal'
 import VisibilityConditions from '../components/Config/VisibilityConditions'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { collectVisibilitySources } from '../utils/visibilitySources'
+import { effectiveFieldName, hasDuplicateFieldName } from '../utils/fieldNames'
 import { useAltKeyHeld } from '../hooks/useAltKeyHeld'
 
 // Strips anything but letters/digits/underscores, turning spaces into underscores to keep the "id" field usable as a WhatsApp Flow key.
@@ -18,10 +19,11 @@ const TYPES_WITHOUT_ID = ['text-caption', 'text-body', 'text-small-heading', 'te
 
 // A node placed inside the form; sortable within the 'form' group so it can be reordered.
 // closestCenter avoids the tiny/erratic hit zones of pure shape-overlap detection.
-const FormItem = ({ id, index, type, title, config, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
+const FormItem = ({ id, index, type, title, name, config, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
     const [isConfigOpen, setIsConfigOpen] = useState(false);
     const isAltHeld = useAltKeyHeld();
     const currentConfig = config ?? {};
+    const isDuplicateId = hasDuplicateFieldName(screens, id, effectiveFieldName({ id, name, config: currentConfig }));
 
     // Normal reordering is disabled while Alt is held; a parallel clone-feedback draggable takes over instead,
     // leaving the original node untouched and dragging a copy (same data, fresh id/name) to wherever it's dropped.
@@ -58,6 +60,7 @@ const FormItem = ({ id, index, type, title, config, onConfigChange, screens, act
                                     placeholder=""
                                 />
                             </label>
+                            {isDuplicateId && <p className="config-field-error">Este Id ya está en uso por otro nodo. Debes elegir uno diferente.</p>}
                         </div>
                     )}
                     {ConfigPanel && (

@@ -8,7 +8,7 @@ const TABS = [
     { id: 'json', label: 'JSON' },
 ];
 
-const PreviewPanel = ({ screens, ...rest }) => {
+const PreviewPanel = ({ screens, onImportJson, ...rest }) => {
     const [activeTab, setActiveTab] = useState('form');
 
     return (
@@ -26,7 +26,7 @@ const PreviewPanel = ({ screens, ...rest }) => {
                 ))}
             </div>
 
-            {activeTab === 'form' ? <GraphicalPreview screens={screens} {...rest} /> : <JsonPreview screens={screens} />}
+            {activeTab === 'form' ? <GraphicalPreview screens={screens} {...rest} /> : <JsonPreview screens={screens} onImport={onImportJson} />}
         </div>
     )
 }

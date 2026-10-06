@@ -25,6 +25,7 @@ const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedS
                             index={index}
                             type={item.type}
                             title={item.title}
+                            name={item.name}
                             config={item.config}
                             onConfigChange={onConfigChange}
                             screens={screens}

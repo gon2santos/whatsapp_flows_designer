@@ -101,6 +101,12 @@ export const useFormBuilder = () => {
 
     const selectScreen = (screenId) => setActiveScreenId(screenId);
 
+    // Replaces the whole design with the screens/items parsed from a pasted WhatsApp Flow JSON document.
+    const importFlowJson = (parsedScreens) => {
+        setScreens(parsedScreens);
+        setActiveScreenId(parsedScreens[0]?.id ?? null);
+    };
+
     const renameScreen = (screenId, newName) => {
         setScreens((currentScreens) => currentScreens.map((screen) => (
             screen.id === screenId ? { ...screen, name: newName } : screen
@@ -265,6 +271,7 @@ export const useFormBuilder = () => {
         handleDragEnd,
         restrictedDropMessage,
         dismissRestrictedDropMessage,
+        importFlowJson,
     };
 };
 

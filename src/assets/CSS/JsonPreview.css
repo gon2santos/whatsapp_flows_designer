@@ -11,9 +11,6 @@
 }
 
 .json-copy-button {
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
     z-index: 10;
     background-color: var(--color-primary);
     color: white;
@@ -30,4 +27,52 @@
 .json-copy-button:hover {
     background-color: var(--color-primary-dark);
     transform: translateY(-1px);
+}
+
+.json-preview-actions {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+}
+
+.json-apply-button {
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    padding: 9px 16px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.json-apply-button:hover:not(:disabled) {
+    background-color: var(--color-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.json-apply-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.json-preview-error {
+    position: absolute;
+    bottom: 56px;
+    left: 16px;
+    right: 16px;
+    z-index: 10;
+    margin: 0;
+    padding: 8px 12px;
+    background-color: #fdecea;
+    color: #b3261e;
+    border: 1px solid #f5c2c0;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
 }
