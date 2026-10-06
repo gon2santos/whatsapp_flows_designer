@@ -39,23 +39,62 @@ const buildItemInfoMap = (screens) => {
     return itemInfoMap;
 };
 
-// Nests a node (or node + its Top text) inside "If" wrappers for each of its (complete) Visibility conditions,
-// outermost first, matching how WhatsApp Flow requires multiple conditions to be expressed as nested "If" nodes.
-// A condition sourced from the current screen reads "${form.<name>}"; from an earlier screen it must
-// read "${data.<payloadKey>}", since that's the only place the value is available once forwarded.
-// Takes/returns an array of nodes so a Top text TextBody stays wrapped together with the field it belongs to.
+// Renders one Visibility condition as a bare WhatsApp Flow boolean clause (no surrounding parentheses, no
+// "&&"/"||"). A condition sourced from the current screen reads "${form.<name>}"; from an earlier screen it
+// must read "${data.<payloadKey>}", since that's the only place the value is available once forwarded.
+// WhatsApp Flow's parser has shown to misparse two parenthesized "==" comparisons joined by "&&"/"||" in the
+// same condition string (reports a false "type mismatch"), so AND/OR are instead expressed structurally via
+// nested "If" components: AND nests through "then", OR chains through "else" (duplicating the guarded nodes
+// in every leaf), matching exactly how a single-condition "If" has always worked.
+const buildConditionClause = (condition, currentScreenId, itemInfoMap) => {
+    const info = itemInfoMap.get(condition.nodeId);
+    const reference = info.screenId === currentScreenId ? `\${form.${info.fieldName}}` : `\${data.${info.payloadKey}}`;
+    return `${reference} ${condition.operator === 'not-equals' ? '!=' : '=='} '${condition.optionId}'`;
+};
+
+// Splits a flat condition list into AND-groups, starting a new group at each "or"-related condition.
+const groupConditionsByOr = (conditions) => conditions.reduce((groups, condition) => {
+    if (!groups.length || condition.logicalOperator === 'or') groups.push([condition]);
+    else groups[groups.length - 1].push(condition);
+    return groups;
+}, []);
+
+// Nests one "If" per condition in the group (AND), innermost first, guarding the same "then" content throughout.
+const nestConditionsAsAnd = (conditions, nodes, currentScreenId, itemInfoMap) => conditions.reduceRight((children, condition) => [{
+    type: 'If',
+    condition: buildConditionClause(condition, currentScreenId, itemInfoMap),
+    then: children,
+}], nodes);
+
+// An OR'd group's guarded content gets duplicated into every branch; WhatsApp Flow requires every Form
+// component's "name" to be unique screen-wide even across mutually-exclusive If/else branches, so every
+// branch after the first needs its own, differently-named copy of any named node (TextInput, Dropdown, etc.).
+const renameNamedNodes = (nodes, suffix) => nodes.map((node) => {
+    if (!node || typeof node !== 'object') return node;
+    const cloned = { ...node };
+    if (typeof cloned.name === 'string') cloned.name = `${cloned.name}_${suffix}`;
+    ['then', 'else'].forEach((key) => {
+        if (Array.isArray(cloned[key])) cloned[key] = renameNamedNodes(cloned[key], suffix);
+    });
+    return cloned;
+});
+
+// Chains each AND-group's outermost "If" into the next group's via "else" (OR). The last group has no
+// "else", so nothing renders when none of the OR'd groups match.
+const nestGroupsAsOr = (groups, nodes, currentScreenId, itemInfoMap) => groups.reduceRight((elseBranch, group, index) => {
+    const branchNodes = index === 0 ? nodes : renameNamedNodes(nodes, `or${index + 1}`);
+    const built = nestConditionsAsAnd(group, branchNodes, currentScreenId, itemInfoMap);
+    return elseBranch ? [{ ...built[0], else: elseBranch }] : built;
+}, null);
+
+// Wraps a node (or node + its Top text) with every Visibility condition. Takes/returns an array so a
+// Top text TextBody stays wrapped together with the field it belongs to.
 const wrapWithVisibility = (nodes, conditions, currentScreenId, itemInfoMap) => {
     const validConditions = (conditions ?? []).filter((condition) => condition.nodeId && condition.optionId && itemInfoMap.has(condition.nodeId));
-    return validConditions.reduceRight((children, condition) => {
-        const info = itemInfoMap.get(condition.nodeId);
-        const reference = info.screenId === currentScreenId ? `\${form.${info.fieldName}}` : `\${data.${info.payloadKey}}`;
-        return [{
-            type: 'If',
-            condition: `${reference} ${condition.operator === 'not-equals' ? '!=' : '=='} '${condition.optionId}'`,
-            then: children,
-        }];
-    }, nodes);
+    if (!validConditions.length) return nodes;
+    return nestGroupsAsOr(groupConditionsByOr(validConditions), nodes, currentScreenId, itemInfoMap);
 };
+
 
 // Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
 // A user-provided config.id overrides the auto-generated item.name as the payload/form field key.

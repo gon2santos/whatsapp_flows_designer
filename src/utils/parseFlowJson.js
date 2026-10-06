@@ -90,11 +90,13 @@ const configFromNode = (internalType, node) => {
     }
 };
 
-// Matches the condition strings produced by buildFlowJson's wrapWithVisibility/buildFooterWithJump.
-const CONDITION_PATTERN = /^\$\{(form|data)\.([A-Za-z0-9_]+)\}\s*(==|!=)\s*'([\s\S]*)'$/;
+// Matches a single clause within the condition strings produced by buildFlowJson's nested-If Visibility
+// wrapping/buildFooterWithJump. The enclosing "()" are optional, tolerating JSON exported by an earlier,
+// now-fixed version of this tool that parenthesized clauses (which WhatsApp Flow's parser rejected).
+const CLAUSE_PATTERN = /^\(?\$\{(form|data)\.([A-Za-z0-9_]+)\}\s*(==|!=)\s*'([^']*)'\)?$/;
 
-const parseCondition = (conditionString, screenId, nameToItemId, payloadKeyToItemId) => {
-    const match = CONDITION_PATTERN.exec(conditionString ?? '');
+const parseClause = (clause, screenId, nameToItemId, payloadKeyToItemId) => {
+    const match = CLAUSE_PATTERN.exec((clause ?? '').trim());
     if (!match) return null;
     const [, scope, ref, operator, optionId] = match;
     const nodeId = scope === 'form' ? nameToItemId.get(`${screenId}:${ref}`) : payloadKeyToItemId.get(ref);
@@ -102,20 +104,45 @@ const parseCondition = (conditionString, screenId, nameToItemId, payloadKeyToIte
     return { nodeId, operator: operator === '!=' ? 'not-equals' : 'equals', optionId };
 };
 
-// Peels off nested "If" wrappers used for Visibility conditions (single-branch: "then" only, no "else"),
-// collecting conditions outermost-first to match how wrapWithVisibility nests them. Works on an array since
-// the innermost "then" may hold 2 nodes: a Top text TextBody followed by the field it belongs to.
-const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => {
-    const visibilityConditions = [];
-    let current = nodes;
-    while (current.length === 1 && current[0]?.type === 'If' && Array.isArray(current[0].then) && !current[0].else) {
-        const condition = parseCondition(current[0].condition, screenId, nameToItemId, payloadKeyToItemId);
-        if (!condition) break;
-        visibilityConditions.push(condition);
-        current = current[0].then;
+// Legacy fallback: an earlier version of this tool combined multiple conditions into one "clause1 && clause2
+// || clause3" string (also since fixed, as WhatsApp Flow's parser rejects that pattern too). Splits it back
+// into individual conditions, storing the operator that joins each one to the previous as logicalOperator.
+const parseConditionExpression = (expression, screenId, nameToItemId, payloadKeyToItemId) => {
+    const parts = (expression ?? '').split(/\s*(&&|\|\|)\s*/);
+    const conditions = [];
+    for (let i = 0; i < parts.length; i += 2) {
+        const condition = parseClause(parts[i], screenId, nameToItemId, payloadKeyToItemId);
+        if (!condition) return [];
+        if (i > 0) condition.logicalOperator = parts[i - 1] === '||' ? 'or' : 'and';
+        conditions.push(condition);
     }
-    return { nodes: current, visibilityConditions };
+    return conditions;
 };
+
+// Recursively peels off the nested "If" structure built for Visibility: AND conditions nest through "then",
+// OR conditions chain through "else" (every leaf duplicates the same guarded content). Works on an array
+// since the innermost "then" may hold 2 nodes: a Top text TextBody followed by the field it belongs to.
+const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => {
+    if (!(nodes.length === 1 && nodes[0]?.type === 'If' && Array.isArray(nodes[0].then))) {
+        return { nodes, visibilityConditions: [] };
+    }
+    const ifNode = nodes[0];
+    const clause = parseClause(ifNode.condition, screenId, nameToItemId, payloadKeyToItemId);
+    const ownConditions = clause ? [clause] : parseConditionExpression(ifNode.condition, screenId, nameToItemId, payloadKeyToItemId);
+    if (!ownConditions.length) return { nodes, visibilityConditions: [] };
+
+    const thenResult = unwrapVisibility(ifNode.then, screenId, nameToItemId, payloadKeyToItemId);
+    const conditions = [...ownConditions, ...thenResult.visibilityConditions];
+
+    if (ifNode.else) {
+        const elseResult = unwrapVisibility(ifNode.else, screenId, nameToItemId, payloadKeyToItemId);
+        if (elseResult.visibilityConditions.length) elseResult.visibilityConditions[0].logicalOperator = 'or';
+        return { nodes: thenResult.nodes, visibilityConditions: [...conditions, ...elseResult.visibilityConditions] };
+    }
+
+    return { nodes: thenResult.nodes, visibilityConditions: conditions };
+};
+
 
 const FOOTER_TYPE = 'Footer';
 
@@ -125,7 +152,7 @@ const extractFooterInfo = (formChildren, screenId, nameToItemId, payloadKeyToIte
     if (!last) return null;
 
     if (last.type === 'If' && last.then?.[0]?.type === FOOTER_TYPE && last.else?.[0]?.type === FOOTER_TYPE) {
-        const condition = parseCondition(last.condition, screenId, nameToItemId, payloadKeyToItemId);
+        const condition = parseClause(last.condition, screenId, nameToItemId, payloadKeyToItemId);
         const jumpTargetName = last.then[0]['on-click-action']?.next?.name;
         return {
             footer: last.else[0],

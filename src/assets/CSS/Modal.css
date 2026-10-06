@@ -299,6 +299,21 @@
     margin-bottom: 10px;
 }
 
+.config-condition-joiner {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.config-condition-joiner select {
+    width: auto;
+    margin-top: 0;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
 .config-condition-row select {
     margin-top: 0;
     width: auto;
