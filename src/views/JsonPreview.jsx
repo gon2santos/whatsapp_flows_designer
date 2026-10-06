@@ -4,6 +4,9 @@ import '../assets/CSS/JsonPreview.css'
 import { buildFlowJson } from '../utils/buildFlowJson'
 import { parseFlowJson } from '../utils/parseFlowJson'
 import Modal from '../components/Modal'
+import copyIcon from '../assets/UIIcons/copy.png'
+import downloadIcon from '../assets/UIIcons/direct-download.png'
+import applyIcon from '../assets/UIIcons/upload.png'
 
 // Live JSON output for the whole flow, rebuilt from the current screens/items/config state.
 // Monaco (the VS Code editor) gives us formatting, syntax highlighting and error markers for free.
@@ -86,14 +89,17 @@ const JsonPreview = ({ screens, onImport }) => {
             />
             {error && <p className="json-preview-error">{error}</p>}
             <div className="json-preview-actions">
-                <button type="button" className="json-copy-button" onClick={handleCopy}>
-                    {copied ? 'Copiado!' : 'Copiar JSON'}
+                <button type="button" className="json-icon-button json-icon-button--copy" onClick={handleCopy}>
+                    <img src={copyIcon} alt="" />
+                    <span>{copied ? 'Copiado!' : 'Copiar JSON'}</span>
                 </button>
-                <button type="button" className="json-download-button" onClick={handleDownload}>
-                    Descargar JSON
+                <button type="button" className="json-icon-button json-icon-button--download" onClick={handleDownload}>
+                    <img src={downloadIcon} alt="" />
+                    <span>Descargar JSON</span>
                 </button>
-                <button type="button" className="json-apply-button" onClick={handleApply} disabled={!isDirty}>
-                    Aplicar JSON
+                <button type="button" className="json-icon-button json-icon-button--apply" onClick={handleApply} disabled={!isDirty}>
+                    <img src={applyIcon} alt="" />
+                    <span>Aplicar JSON</span>
                 </button>
             </div>
             {pendingScreens && (

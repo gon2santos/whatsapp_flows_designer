@@ -10,74 +10,85 @@
     overflow: hidden;
 }
 
-.json-copy-button {
-    z-index: 10;
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 9px 16px;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 600;
-    box-shadow: var(--shadow-lg);
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.json-copy-button:hover {
-    background-color: var(--color-primary-dark);
-    transform: translateY(-1px);
-}
-
-.json-download-button {
-    z-index: 10;
-    background-color: var(--color-surface);
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
-    border-radius: var(--radius-sm);
-    padding: 9px 16px;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 600;
-    box-shadow: var(--shadow-lg);
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.json-download-button:hover {
-    background-color: var(--color-primary);
-    color: white;
-    transform: translateY(-1px);
-}
-
 .json-preview-actions {
     position: absolute;
     bottom: 16px;
     right: 16px;
     z-index: 10;
     display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 8px;
 }
 
-.json-apply-button {
-    background-color: var(--color-surface);
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
+.json-icon-button {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border: none;
     border-radius: var(--radius-sm);
-    padding: 9px 16px;
     cursor: pointer;
     font: inherit;
     font-weight: 600;
+    overflow: hidden;
     box-shadow: var(--shadow-lg);
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.json-apply-button:hover:not(:disabled) {
     background-color: var(--color-primary);
     color: white;
-    transform: translateY(-1px);
+    transition: width var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.json-apply-button:disabled {
+.json-icon-button:hover:not(:disabled) {
+    background-color: var(--color-primary-dark);
+}
+
+/* Each button's hover width is sized in "ch" (character-based) units to its own label, instead of a shared value. */
+.json-icon-button--copy:hover:not(:disabled) {
+    width: 12ch;
+}
+
+.json-icon-button--download:hover:not(:disabled) {
+    width: 15ch;
+}
+
+.json-icon-button--apply:hover:not(:disabled) {
+    width: 12.5ch;
+}
+
+/* "Aplicar JSON" matches the other buttons' green while enabled; the white outline look is reserved for disabled. */
+.json-icon-button--apply:disabled {
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.json-icon-button img,
+.json-icon-button span {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    transition: opacity var(--transition-fast);
+}
+
+.json-icon-button img {
+    width: 20px;
+    height: 20px;
+}
+
+.json-icon-button span {
+    opacity: 0;
+    white-space: nowrap;
+}
+
+.json-icon-button:hover:not(:disabled) img {
+    opacity: 0;
+}
+
+.json-icon-button:hover:not(:disabled) span {
+    opacity: 1;
+}
+
+.json-icon-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
