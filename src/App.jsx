@@ -3,6 +3,7 @@ import { DragDropProvider } from '@dnd-kit/react'
 import PaletteContainer from './views/Config/PaletteContainer'
 import PreviewPanel from './views/PreviewPanel'
 import Modal from './components/Modal'
+import Footer from './components/Footer'
 import { useFormBuilder } from './hooks/useFormBuilder'
 
 function App() {
@@ -25,29 +26,32 @@ function App() {
   } = useFormBuilder();
 
   return (
-    <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-      <div className="app-container">
-        <PaletteContainer />
-        <PreviewPanel
-          screens={screens}
-          activeScreenId={activeScreenId}
-          items={items}
-          onAddScreen={addScreen}
-          onRemoveScreen={removeScreen}
-          onSelectScreen={selectScreen}
-          onRenameScreen={renameScreen}
-          onFooterLabelChange={setFooterLabel}
-          onConfigChange={updateItemConfig}
-          onPruneLinkedScreen={pruneDisallowedNodes}
-          onImportJson={importFlowJson}
-        />
-      </div>
-      {restrictedDropMessage && (
-        <Modal title="Nodo no permitido" onClose={dismissRestrictedDropMessage}>
-          <p>{restrictedDropMessage}</p>
-        </Modal>
-      )}
-    </DragDropProvider>
+    <>
+      <DragDropProvider onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <div className="app-container">
+          <PaletteContainer />
+          <PreviewPanel
+            screens={screens}
+            activeScreenId={activeScreenId}
+            items={items}
+            onAddScreen={addScreen}
+            onRemoveScreen={removeScreen}
+            onSelectScreen={selectScreen}
+            onRenameScreen={renameScreen}
+            onFooterLabelChange={setFooterLabel}
+            onConfigChange={updateItemConfig}
+            onPruneLinkedScreen={pruneDisallowedNodes}
+            onImportJson={importFlowJson}
+          />
+        </div>
+        {restrictedDropMessage && (
+          <Modal title="Nodo no permitido" onClose={dismissRestrictedDropMessage}>
+            <p>{restrictedDropMessage}</p>
+          </Modal>
+        )}
+      </DragDropProvider>
+      <Footer />
+    </>
   )
 }
 
