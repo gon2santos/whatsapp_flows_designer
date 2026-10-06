@@ -28,6 +28,16 @@ const JsonPreview = ({ screens, onImport }) => {
         setTimeout(() => setCopied(false), 1500);
     };
 
+    const handleDownload = () => {
+        const blob = new Blob([draft], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'flow.json';
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handleChange = (value) => {
         setDraft(value ?? '');
         setIsDirty(true);
@@ -78,6 +88,9 @@ const JsonPreview = ({ screens, onImport }) => {
             <div className="json-preview-actions">
                 <button type="button" className="json-copy-button" onClick={handleCopy}>
                     {copied ? 'Copiado!' : 'Copiar JSON'}
+                </button>
+                <button type="button" className="json-download-button" onClick={handleDownload}>
+                    Descargar JSON
                 </button>
                 <button type="button" className="json-apply-button" onClick={handleApply} disabled={!isDirty}>
                     Aplicar JSON
