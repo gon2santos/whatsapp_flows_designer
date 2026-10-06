@@ -175,6 +175,8 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
         if (visibilityConditions.length) config.visibilityConditions = visibilityConditions;
 
         const fieldName = typeof node.name === 'string' && node.name ? node.name : `${slugify(internalType)}_${items.length}`;
+        // The modal's "Id" field reads config.id, so the imported field name must land there too, not just in item.name.
+        if (NAMED_TYPES.includes(internalType)) config.id = fieldName;
         const item = createItem(internalType, fieldName, config);
         items.push(item);
 
