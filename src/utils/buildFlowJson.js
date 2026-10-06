@@ -39,21 +39,22 @@ const buildItemInfoMap = (screens) => {
     return itemInfoMap;
 };
 
-// Nests a node inside "If" wrappers for each of its (complete) Visibility conditions, outermost first,
-// matching how WhatsApp Flow requires multiple conditions to be expressed as nested "If" nodes.
+// Nests a node (or node + its Top text) inside "If" wrappers for each of its (complete) Visibility conditions,
+// outermost first, matching how WhatsApp Flow requires multiple conditions to be expressed as nested "If" nodes.
 // A condition sourced from the current screen reads "${form.<name>}"; from an earlier screen it must
 // read "${data.<payloadKey>}", since that's the only place the value is available once forwarded.
-const wrapWithVisibility = (node, conditions, currentScreenId, itemInfoMap) => {
+// Takes/returns an array of nodes so a Top text TextBody stays wrapped together with the field it belongs to.
+const wrapWithVisibility = (nodes, conditions, currentScreenId, itemInfoMap) => {
     const validConditions = (conditions ?? []).filter((condition) => condition.nodeId && condition.optionId && itemInfoMap.has(condition.nodeId));
-    return validConditions.reduceRight((child, condition) => {
+    return validConditions.reduceRight((children, condition) => {
         const info = itemInfoMap.get(condition.nodeId);
         const reference = info.screenId === currentScreenId ? `\${form.${info.fieldName}}` : `\${data.${info.payloadKey}}`;
-        return {
+        return [{
             type: 'If',
             condition: `${reference} ${condition.operator === 'not-equals' ? '!=' : '=='} '${condition.optionId}'`,
-            then: [child],
-        };
-    }, node);
+            then: children,
+        }];
+    }, nodes);
 };
 
 // Each real (non-preview) node knows how to render its own WhatsApp Flow JSON via definition.toJson.
@@ -68,9 +69,9 @@ const buildFormChildren = (items, currentScreenId, itemInfoMap) => items
     .flatMap((item) => {
         const node = findDefinition(item.type)?.toJson(item.config ?? {}, { name: item.config?.id || item.name });
         if (!node) return [];
-        const wrapped = wrapWithVisibility(withLinkedScreenId(node), item.config?.visibilityConditions, currentScreenId, itemInfoMap);
         const topText = item.config?.topText?.trim();
-        return topText ? [buildTopTextNode(topText), wrapped] : [wrapped];
+        const nodes = topText ? [buildTopTextNode(topText), withLinkedScreenId(node)] : [withLinkedScreenId(node)];
+        return wrapWithVisibility(nodes, item.config?.visibilityConditions, currentScreenId, itemInfoMap);
     });
 
 // The runtime value type each WhatsApp Flow component produces, used to keep the forwarded data-model schema accurate.

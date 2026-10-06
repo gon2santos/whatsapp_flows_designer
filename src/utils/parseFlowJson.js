@@ -103,17 +103,18 @@ const parseCondition = (conditionString, screenId, nameToItemId, payloadKeyToIte
 };
 
 // Peels off nested "If" wrappers used for Visibility conditions (single-branch: "then" only, no "else"),
-// collecting conditions outermost-first to match how wrapWithVisibility nests them.
-const unwrapVisibility = (node, screenId, nameToItemId, payloadKeyToItemId) => {
+// collecting conditions outermost-first to match how wrapWithVisibility nests them. Works on an array since
+// the innermost "then" may hold 2 nodes: a Top text TextBody followed by the field it belongs to.
+const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => {
     const visibilityConditions = [];
-    let current = node;
-    while (current?.type === 'If' && Array.isArray(current.then) && current.then.length === 1 && !current.else) {
-        const condition = parseCondition(current.condition, screenId, nameToItemId, payloadKeyToItemId);
+    let current = nodes;
+    while (current.length === 1 && current[0]?.type === 'If' && Array.isArray(current[0].then) && !current[0].else) {
+        const condition = parseCondition(current[0].condition, screenId, nameToItemId, payloadKeyToItemId);
         if (!condition) break;
         visibilityConditions.push(condition);
-        current = current.then[0];
+        current = current[0].then;
     }
-    return { node: current, visibilityConditions };
+    return { nodes: current, visibilityConditions };
 };
 
 const FOOTER_TYPE = 'Footer';
@@ -148,11 +149,15 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
     };
 
     children.forEach((child) => {
-        const { node, visibilityConditions } = unwrapVisibility(child, screenId, nameToItemId, payloadKeyToItemId);
+        const { nodes: unwrapped, visibilityConditions } = unwrapVisibility([child], screenId, nameToItemId, payloadKeyToItemId);
+        // A Visibility-wrapped pair carries its Top text alongside the field it belongs to, inside the same If.
+        const [node, wrappedTopText] = unwrapped.length === 2 && unwrapped[0]?.type === 'TextBody'
+            ? [unwrapped[1], unwrapped[0]]
+            : [unwrapped[0], null];
         if (!node) { flushPendingTopText(); return; }
 
         // A bare TextBody might just be the "Top text" of the node right after it: hold onto it until we know.
-        if (node.type === 'TextBody' && visibilityConditions.length === 0) {
+        if (node.type === 'TextBody' && visibilityConditions.length === 0 && !wrappedTopText) {
             flushPendingTopText();
             pendingTopText = node;
             return;
@@ -165,7 +170,9 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
             return;
         }
 
-        if (pendingTopText && TOP_TEXT_ELIGIBLE_TYPES.includes(internalType)) {
+        if (wrappedTopText && TOP_TEXT_ELIGIBLE_TYPES.includes(internalType)) {
+            config.topText = textOf(wrappedTopText);
+        } else if (pendingTopText && TOP_TEXT_ELIGIBLE_TYPES.includes(internalType)) {
             config.topText = textOf(pendingTopText);
             pendingTopText = null;
         } else {
