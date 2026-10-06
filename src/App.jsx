@@ -21,6 +21,7 @@ function App() {
     handleDragEnd,
     restrictedDropMessage,
     dismissRestrictedDropMessage,
+    importFlowJson,
   } = useFormBuilder();
 
   return (
@@ -38,6 +39,7 @@ function App() {
           onFooterLabelChange={setFooterLabel}
           onConfigChange={updateItemConfig}
           onPruneLinkedScreen={pruneDisallowedNodes}
+          onImportJson={importFlowJson}
         />
       </div>
       {restrictedDropMessage && (
