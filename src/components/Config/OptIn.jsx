@@ -90,8 +90,10 @@ const OptIn = ({ config, onChange, screens = [], activeScreenId, onPruneLinkedSc
                         sección de Opt In (solo se permiten Text Caption, Text Body, Small Header, Large Header e Image).
                         Si continúas, esos nodos se eliminarán de esa pantalla. ¿Enlazar de todas formas?
                     </p>
-                    <button type="button" onClick={confirmPendingLink}>Sí</button>
-                    <button type="button" onClick={cancelPendingLink}>No</button>
+                    <div className="modal-actions">
+                        <button type="button" className='modal-button' onClick={confirmPendingLink}>Sí</button>
+                        <button type="button" className='modal-button' onClick={cancelPendingLink}>No</button>
+                    </div>
                 </Modal>
             )}
         </div>

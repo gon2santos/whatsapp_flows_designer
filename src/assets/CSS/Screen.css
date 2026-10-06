@@ -23,6 +23,7 @@
     font-size: 12px;
     font-weight: 600;
     z-index: 1;
+    user-select: none;
 }
 
 .screen-node-counter--limit {

@@ -105,8 +105,10 @@ const JsonPreview = ({ screens, onImport }) => {
             {pendingScreens && (
                 <Modal title="Reemplazar diseño actual" onClose={cancelApply}>
                     <p>Esto reemplazará todas las pantallas y nodos actuales por el contenido del JSON pegado. ¿Deseas continuar?</p>
-                    <button type="button" onClick={confirmApply}>Sí, reemplazar</button>
-                    <button type="button" onClick={cancelApply}>Cancelar</button>
+                    <div className="modal-actions">
+                        <button className='modal-button' type="button" onClick={confirmApply}>Sí, reemplazar</button>
+                        <button className='modal-button' type="button" onClick={cancelApply}>Cancelar</button>
+                    </div>
                 </Modal>
             )}
         </div>
