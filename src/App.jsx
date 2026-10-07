@@ -16,6 +16,7 @@ function App() {
     selectScreen,
     renameScreen,
     setFooterLabel,
+    setFooterTarget,
     updateItemConfig,
     pruneDisallowedNodes,
     handleDragOver,
@@ -41,6 +42,7 @@ function App() {
             onSelectScreen={selectScreen}
             onRenameScreen={renameScreen}
             onFooterLabelChange={setFooterLabel}
+            onFooterTargetChange={setFooterTarget}
             onConfigChange={updateItemConfig}
             onPruneLinkedScreen={pruneDisallowedNodes}
             onImportJson={importFlowJson}

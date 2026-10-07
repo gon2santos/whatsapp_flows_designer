@@ -1,6 +1,7 @@
 import nodeDefinitions from '../data/nodeDefinitions'
 import { collectLinkedScreenIds } from './linkedScreens'
 import { hasMarkdown } from './markdownShortcuts'
+import { resolveFooterTarget } from './footerTarget'
 
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
 
@@ -156,8 +157,7 @@ const buildPayload = (ownFields, forwardedEntries, allowedKeys) => {
 };
 
 const buildFooter = (screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, targetScreenIdOverride) => {
-    const nextScreen = screens[screenIndex + 1];
-    const targetScreenId = targetScreenIdOverride !== undefined ? targetScreenIdOverride : nextScreen?.id;
+    const targetScreenId = targetScreenIdOverride !== undefined ? targetScreenIdOverride : resolveFooterTarget(screen, screens, screenIndex);
     // No target (flow completion) means there's no screen data model to match: forward everything collected so far.
     const allowedKeys = targetScreenId ? new Set((incomingFieldsByScreenId.get(targetScreenId) ?? []).map((field) => field.key)) : null;
     const payload = buildPayload(ownFields, forwardedEntries, allowedKeys);
@@ -219,7 +219,7 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenI
             id: screen.id,
             title: screen.name,
             data: buildDataSchema(forwardedEntries),
-            ...(screenIndex === screens.length - 1 ? { terminal: true } : {}),
+            ...(resolveFooterTarget(screen, screens, screenIndex) === undefined ? { terminal: true } : {}),
             layout: {
                 type: 'SingleColumnLayout',
                 children: [
@@ -248,8 +248,8 @@ const buildLinkedScreen = (screen, itemInfoMap) => ({
 const screenSuccessors = (screen, screenIndex, mainScreens, mainScreenIds) => {
     const jumpItem = findJumpItem(screen, mainScreenIds);
     const jumpTargets = jumpItem ? validJumpConditions(jumpItem, mainScreenIds).map((jump) => jump.screenId) : [];
-    const nextScreen = mainScreens[screenIndex + 1];
-    return [...new Set([...jumpTargets, nextScreen?.id].filter(Boolean))];
+    const defaultTarget = resolveFooterTarget(screen, mainScreens, screenIndex);
+    return [...new Set([...jumpTargets, defaultTarget].filter(Boolean))];
 };
 
 const buildRoutingModel = (mainScreens, mainScreenIds) => mainScreens.reduce((routingModel, screen, screenIndex) => {

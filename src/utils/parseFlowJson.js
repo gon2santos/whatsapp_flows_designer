@@ -1,5 +1,6 @@
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from './slugify'
+import { COMPLETE_TARGET } from './footerTarget'
 
 // Mirrors buildFlowJson's LINKED_SCREEN_ID_PREFIX: screens only reachable via an OptIn's "Leer más" link.
 const LINKED_SCREEN_ID_PREFIX = 'OPTIN_SCREEN_';
@@ -266,8 +267,11 @@ export const parseFlowJson = (flow) => {
         const hasNext = !!footerInfo?.footer?.['on-click-action']?.next;
         const defaultLabel = hasNext ? 'Continuar' : 'Finalizar';
         const footerLabel = footerInfo?.footer?.label && footerInfo.footer.label !== defaultLabel ? footerInfo.footer.label : null;
+        // Pins the exact navigate/complete target from the JSON, so re-exporting matches regardless of array order.
+        const nextTargetName = footerInfo?.footer?.['on-click-action']?.next?.name;
+        const footerTarget = !footerInfo?.footer ? undefined : (nextTargetName ? stripLinkedScreenId(nextTargetName) : COMPLETE_TARGET);
 
-        return { id: internalId, name: screenName, items, footerLabel };
+        return { id: internalId, name: screenName, items, footerLabel, footerTarget };
     };
 
     const rawMainScreens = flow.screens.filter((screen) => !isLinkedScreenId(screen?.id));

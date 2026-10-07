@@ -5,7 +5,7 @@ import FormItemPreview from '../views/FormItemPreview'
 import FooterButton from '../views/FooterButton'
 import { MAX_NODES_PER_SCREEN, countNodeSlots } from '../hooks/useFormBuilder'
 
-const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange, lockRequired, onToggleLockRequired }) => {
+const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange, mainScreens, activeScreenIndex, footerTarget, onFooterTargetChange, lockRequired, onToggleLockRequired }) => {
     const { ref } = useDroppable({ id: 'screen-drop-zone' });
     const nodeCount = countNodeSlots(items.filter((item) => !item.isPreview));
     const isAtLimit = nodeCount >= MAX_NODES_PER_SCREEN;
@@ -45,7 +45,16 @@ const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedS
                     )
             ))}
             {!isLinked && (
-                <FooterButton label={footerLabel} isTerminal={isTerminal} onLabelChange={onFooterLabelChange} />
+                <FooterButton
+                    label={footerLabel}
+                    isTerminal={isTerminal}
+                    onLabelChange={onFooterLabelChange}
+                    mainScreens={mainScreens}
+                    activeScreenId={activeScreenId}
+                    activeScreenIndex={activeScreenIndex}
+                    footerTarget={footerTarget}
+                    onFooterTargetChange={onFooterTargetChange}
+                />
             )}
         </div>
     )

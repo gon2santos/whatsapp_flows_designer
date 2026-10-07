@@ -3,6 +3,7 @@ import '../assets/CSS/Screens.css'
 import Screen from '../components/Screen'
 import Modal from '../components/Modal'
 import { collectLinkedScreenIds } from '../utils/linkedScreens'
+import { resolveFooterTarget } from '../utils/footerTarget'
 
 const LinkIcon = () => (
     <svg className="screen-tab-link-icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
@@ -10,14 +11,17 @@ const LinkIcon = () => (
     </svg>
 );
 
-const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onConfigChange, onPruneLinkedScreen, lockRequired, onToggleLockRequired }) => {
+const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onFooterTargetChange, onConfigChange, onPruneLinkedScreen, lockRequired, onToggleLockRequired }) => {
     const [renamingScreenId, setRenamingScreenId] = useState(null);
     const [renameValue, setRenameValue] = useState('');
     const linkedScreenIds = collectLinkedScreenIds(screens);
     const activeScreen = screens.find((screen) => screen.id === activeScreenId) ?? null;
-    // Terminal status mirrors buildFlowJson: the last screen among the ones not reachable only via an OptIn link.
+    // Terminal status mirrors buildFlowJson: the screen's resolved footer target (explicit choice, or the
+    // implicit next-in-order default) is empty.
     const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
-    const isActiveScreenTerminal = mainScreens.length > 0 && mainScreens[mainScreens.length - 1].id === activeScreenId;
+    const activeScreenIndex = mainScreens.findIndex((screen) => screen.id === activeScreenId);
+    const isActiveScreenTerminal = activeScreen != null && activeScreenIndex !== -1
+        && resolveFooterTarget(activeScreen, mainScreens, activeScreenIndex) === undefined;
     const isActiveScreenLinked = linkedScreenIds.has(activeScreenId);
 
     const startRenaming = (screen) => {
@@ -70,6 +74,10 @@ const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemov
                         isLinked={isActiveScreenLinked}
                         footerLabel={activeScreen?.footerLabel}
                         onFooterLabelChange={(label) => onFooterLabelChange(activeScreenId, label)}
+                        mainScreens={mainScreens}
+                        activeScreenIndex={activeScreenIndex}
+                        footerTarget={activeScreen?.footerTarget}
+                        onFooterTargetChange={(target) => onFooterTargetChange(activeScreenId, target)}
                         lockRequired={lockRequired}
                         onToggleLockRequired={onToggleLockRequired}
                     />

@@ -136,6 +136,13 @@ export const useFormBuilder = () => {
         )));
     };
 
+    // The footer's "Navigate to" choice: a screen id, or footerTarget.js's COMPLETE_TARGET sentinel for "Finalizar".
+    const setFooterTarget = (screenId, target) => {
+        setScreens((currentScreens) => currentScreens.map((screen) => (
+            screen.id === screenId ? { ...screen, footerTarget: target } : screen
+        )));
+    };
+
     // Stores the modal's edits for a single node back into that node's screen, keyed by node id.
     const updateItemConfig = (itemId, newConfig) => {
         setScreens((currentScreens) => currentScreens.map((screen) => (
@@ -281,6 +288,7 @@ export const useFormBuilder = () => {
         selectScreen,
         renameScreen,
         setFooterLabel,
+        setFooterTarget,
         updateItemConfig,
         pruneDisallowedNodes,
         handleDragOver,
