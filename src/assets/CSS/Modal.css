@@ -193,7 +193,8 @@
     flex: 1;
 }
 
-.config-option-row button {
+.config-option-row button,
+.config-jump-row button {
     flex-shrink: 0;
     cursor: pointer;
     background: none;
@@ -204,7 +205,8 @@
     transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.config-option-row button:hover {
+.config-option-row button:hover,
+.config-jump-row button:hover {
     color: var(--color-danger);
     border-color: var(--color-danger);
 }
@@ -284,6 +286,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 16px;
 }
 
 .config-jump-row select {
