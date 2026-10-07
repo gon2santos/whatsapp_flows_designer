@@ -23,6 +23,8 @@ function App() {
     restrictedDropMessage,
     dismissRestrictedDropMessage,
     importFlowJson,
+    lockRequired,
+    toggleLockRequired,
   } = useFormBuilder();
 
   return (
@@ -42,6 +44,8 @@ function App() {
             onConfigChange={updateItemConfig}
             onPruneLinkedScreen={pruneDisallowedNodes}
             onImportJson={importFlowJson}
+            lockRequired={lockRequired}
+            onToggleLockRequired={toggleLockRequired}
           />
         </div>
         {restrictedDropMessage && (

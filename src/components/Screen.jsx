@@ -5,15 +5,25 @@ import FormItemPreview from '../views/FormItemPreview'
 import FooterButton from '../views/FooterButton'
 import { MAX_NODES_PER_SCREEN, countNodeSlots } from '../hooks/useFormBuilder'
 
-const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange }) => {
+const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange, lockRequired, onToggleLockRequired }) => {
     const { ref } = useDroppable({ id: 'screen-drop-zone' });
     const nodeCount = countNodeSlots(items.filter((item) => !item.isPreview));
     const isAtLimit = nodeCount >= MAX_NODES_PER_SCREEN;
 
     return (
         <div className="screen" ref={ref}>
-            <div className={`screen-node-counter${isAtLimit ? ' screen-node-counter--limit' : ''}`}>
-                {nodeCount}/{MAX_NODES_PER_SCREEN}
+            <div className="screen-toolbar">
+                <label className="screen-lock-required">
+                    <input
+                        type="checkbox"
+                        checked={lockRequired}
+                        onChange={onToggleLockRequired}
+                    />
+                    Lock required
+                </label>
+                <div className={`screen-node-counter${isAtLimit ? ' screen-node-counter--limit' : ''}`}>
+                    {nodeCount}/{MAX_NODES_PER_SCREEN}
+                </div>
             </div>
             {items.map((item, index) => (
                 item.isPreview
