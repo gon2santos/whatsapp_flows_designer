@@ -146,21 +146,26 @@ const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => 
 
 const FOOTER_TYPE = 'Footer';
 
-// Pulls the footer out of a screen's form children, unwrapping the "If" added for a Jump-to-Screen condition, if any.
+// Recursively peels off a chain of Jump-to-Screen "If"s (each: then=[Footer], else=[...]), terminating at the
+// screen's actual Footer. Each chained "If" becomes one entry in "jumps", outermost (first configured) first.
+const extractFooterChain = (node, screenId, nameToItemId, payloadKeyToItemId) => {
+    if (node?.type === FOOTER_TYPE) return { footer: node, jumps: [] };
+    if (node?.type === 'If' && node.then?.[0]?.type === FOOTER_TYPE && Array.isArray(node.else)) {
+        const condition = parseClause(node.condition, screenId, nameToItemId, payloadKeyToItemId);
+        const jumpTargetName = node.then[0]['on-click-action']?.next?.name;
+        if (!condition || !jumpTargetName) return null;
+        const rest = extractFooterChain(node.else[0], screenId, nameToItemId, payloadKeyToItemId);
+        if (!rest) return null;
+        return { footer: rest.footer, jumps: [{ ...condition, screenId: stripLinkedScreenId(jumpTargetName) }, ...rest.jumps] };
+    }
+    return null;
+};
+
+// Pulls the footer out of a screen's form children, unwrapping any Jump-to-Screen "If" chain in front of it.
 const extractFooterInfo = (formChildren, screenId, nameToItemId, payloadKeyToItemId) => {
     const last = formChildren[formChildren.length - 1];
     if (!last) return null;
-
-    if (last.type === 'If' && last.then?.[0]?.type === FOOTER_TYPE && last.else?.[0]?.type === FOOTER_TYPE) {
-        const condition = parseClause(last.condition, screenId, nameToItemId, payloadKeyToItemId);
-        const jumpTargetName = last.then[0]['on-click-action']?.next?.name;
-        return {
-            footer: last.else[0],
-            jump: condition && jumpTargetName ? { ...condition, screenId: stripLinkedScreenId(jumpTargetName) } : null,
-        };
-    }
-    if (last.type === FOOTER_TYPE) return { footer: last, jump: null };
-    return null;
+    return extractFooterChain(last, screenId, nameToItemId, payloadKeyToItemId);
 };
 
 // Converts a screen's Form children (everything but the Footer) into this app's node items, registering each
@@ -250,9 +255,12 @@ export const parseFlowJson = (flow) => {
         const items = buildScreenItems(formChildren, internalId, screenName, nameToItemId, payloadKeyToItemId);
         const footerInfo = extractFooterInfo(formChildren, internalId, nameToItemId, payloadKeyToItemId);
 
-        if (footerInfo?.jump) {
-            const jumpItem = items.find((item) => item.id === footerInfo.jump.nodeId);
-            if (jumpItem) jumpItem.config.jumpCondition = { optionId: footerInfo.jump.optionId, screenId: footerInfo.jump.screenId };
+        if (footerInfo?.jumps?.length) {
+            footerInfo.jumps.forEach((jump) => {
+                const jumpItem = items.find((item) => item.id === jump.nodeId);
+                if (!jumpItem) return;
+                jumpItem.config.jumpConditions = [...(jumpItem.config.jumpConditions ?? []), { optionId: jump.optionId, screenId: jump.screenId }];
+            });
         }
 
         const hasNext = !!footerInfo?.footer?.['on-click-action']?.next;

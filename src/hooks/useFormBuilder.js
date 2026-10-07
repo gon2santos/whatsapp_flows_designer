@@ -27,15 +27,18 @@ const OPTIN_LIMIT_MESSAGE = `No se pueden agregar más de ${MAX_OPTIN_PER_SCREEN
 const countOptInNodes = (items) => items.filter((item) => item.type === OPTIN_TYPE).length;
 
 // Builds a real node from a committed preview: stable field name + the type's default editable config.
-const createNodeFromPreview = (preview) => {
+// When lockRequired is on, any type that has a "required" toggle starts out checked.
+const createNodeFromPreview = (preview, lockRequired) => {
     const id = crypto.randomUUID();
     const defaultConfig = nodeDefinitions.find((definition) => definition.type === preview.type)?.defaultConfig ?? {};
+    const config = { ...defaultConfig };
+    if (lockRequired && 'required' in defaultConfig) config.required = true;
     return {
         id,
         type: preview.type,
         title: preview.title,
         name: `${slugify(preview.title)}_${id.slice(0, 8)}`,
-        config: { ...defaultConfig },
+        config,
     };
 };
 
@@ -52,7 +55,7 @@ const createClonedNode = (preview) => {
 };
 
 // A dropped preview came either from the palette (fresh default config) or from an Alt-drag clone of an existing node.
-const createItemFromPreview = (preview) => (preview.cloneConfig ? createClonedNode(preview) : createNodeFromPreview(preview));
+const createItemFromPreview = (preview, lockRequired) => (preview.cloneConfig ? createClonedNode(preview) : createNodeFromPreview(preview, lockRequired));
 
 // The white screen area is the actual boundary for keeping/deleting a node, regardless of which collision target is reported.
 const isPointerInsideScreen = (position) => {
@@ -75,6 +78,9 @@ export const useFormBuilder = () => {
     const [screens, setScreens] = useState(() => persistedState?.screens ?? []);
     const [activeScreenId, setActiveScreenId] = useState(() => persistedState?.activeScreenId ?? null);
     const [restrictedDropMessage, setRestrictedDropMessage] = useState(null);
+    const [lockRequired, setLockRequired] = useState(false);
+
+    const toggleLockRequired = () => setLockRequired((current) => !current);
 
     // Debounced so rapid edits (e.g. typing in a config field) don't hit localStorage on every keystroke.
     useEffect(() => {
@@ -240,7 +246,7 @@ export const useFormBuilder = () => {
             updateActiveScreenItems((currentItems) => (
                 shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed
                     ? currentItems.map((item) => (
-                        item.id === PREVIEW_ID ? createItemFromPreview(item) : item
+                        item.id === PREVIEW_ID ? createItemFromPreview(item, lockRequired) : item
                     ))
                     : currentItems.filter((item) => item.id !== PREVIEW_ID)
             ));
@@ -282,6 +288,8 @@ export const useFormBuilder = () => {
         restrictedDropMessage,
         dismissRestrictedDropMessage,
         importFlowJson,
+        lockRequired,
+        toggleLockRequired,
     };
 };
 

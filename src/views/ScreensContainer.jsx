@@ -10,7 +10,7 @@ const LinkIcon = () => (
     </svg>
 );
 
-const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onConfigChange, onPruneLinkedScreen }) => {
+const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onConfigChange, onPruneLinkedScreen, lockRequired, onToggleLockRequired }) => {
     const [renamingScreenId, setRenamingScreenId] = useState(null);
     const [renameValue, setRenameValue] = useState('');
     const linkedScreenIds = collectLinkedScreenIds(screens);
@@ -70,6 +70,8 @@ const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemov
                         isLinked={isActiveScreenLinked}
                         footerLabel={activeScreen?.footerLabel}
                         onFooterLabelChange={(label) => onFooterLabelChange(activeScreenId, label)}
+                        lockRequired={lockRequired}
+                        onToggleLockRequired={onToggleLockRequired}
                     />
                 )
                 : <div className="screens-empty">Agrega una pantalla para comenzar</div>}

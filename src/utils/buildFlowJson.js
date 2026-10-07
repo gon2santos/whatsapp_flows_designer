@@ -170,28 +170,32 @@ const buildFooter = (screen, screens, screenIndex, ownFields, forwardedEntries, 
     };
 };
 
-// Node types whose config can hold a "Jump to Screen" conditional (config.jumpCondition = { optionId, screenId }).
+// Node types whose config can hold "Jump to Screen" conditionals (config.jumpConditions = [{ optionId, screenId }]).
 const JUMP_NODE_TYPES = ['dropdown', 'radio'];
 
-// First item on the screen with a valid, resolvable jump condition, if any.
-const findJumpItem = (screen, mainScreenIds) => screen.items.find((item) => {
-    const jump = item.config?.jumpCondition;
-    return JUMP_NODE_TYPES.includes(item.type) && jump?.optionId && jump?.screenId && mainScreenIds.has(jump.screenId);
-});
+// This item's jump conditions that still point at a real, selectable main screen.
+const validJumpConditions = (item, mainScreenIds) => (item.config?.jumpConditions ?? [])
+    .filter((jump) => jump?.optionId && jump?.screenId && mainScreenIds.has(jump.screenId));
 
-// Wraps the normal footer in an "If" node that navigates to the jump target when the selected option matches.
-const buildFooterWithJump = (screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId) => {
-    const elseFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId);
-    if (!jumpItem) return elseFooter;
+// First item on the screen with at least one valid, resolvable jump condition, if any.
+const findJumpItem = (screen, mainScreenIds) => screen.items.find((item) => (
+    JUMP_NODE_TYPES.includes(item.type) && validJumpConditions(item, mainScreenIds).length > 0
+));
+
+// Wraps the normal footer in a chain of "If" nodes, one per jump condition (first one checked outermost),
+// each navigating to its own target screen when its option matches; falls back to the normal footer otherwise.
+const buildFooterWithJump = (screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds) => {
+    const fallbackFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId);
+    const jumps = jumpItem ? validJumpConditions(jumpItem, mainScreenIds) : [];
+    if (!jumps.length) return fallbackFooter;
 
     const fieldName = jumpItem.config?.id || jumpItem.name;
-    const thenFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, jumpItem.config.jumpCondition.screenId);
-    return {
+    return jumps.reduceRight((elseFooter, jump) => ({
         type: 'If',
-        condition: `\${form.${fieldName}} == '${jumpItem.config.jumpCondition.optionId}'`,
-        then: [thenFooter],
+        condition: `\${form.${fieldName}} == '${jump.optionId}'`,
+        then: [buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, jump.screenId)],
         else: [elseFooter],
-    };
+    }), fallbackFooter);
 };
 
 // Declares the shape of the data a screen expects to receive, i.e. everything forwarded from earlier screens.
@@ -208,7 +212,7 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenI
     const formChildren = buildFormChildren(screen.items, screen.id, itemInfoMap);
     const ownFields = ownFieldsOf(formChildren, screen.name);
     const jumpItem = findJumpItem(screen, mainScreenIds);
-    const footer = buildFooterWithJump(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId);
+    const footer = buildFooterWithJump(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds);
 
     return {
         screen: {
@@ -243,8 +247,9 @@ const buildLinkedScreen = (screen, itemInfoMap) => ({
 // Every screen a jump/normal-next could lead to, used so WhatsApp Flow can validate non-linear navigation.
 const screenSuccessors = (screen, screenIndex, mainScreens, mainScreenIds) => {
     const jumpItem = findJumpItem(screen, mainScreenIds);
+    const jumpTargets = jumpItem ? validJumpConditions(jumpItem, mainScreenIds).map((jump) => jump.screenId) : [];
     const nextScreen = mainScreens[screenIndex + 1];
-    return [...new Set([jumpItem?.config.jumpCondition.screenId, nextScreen?.id].filter(Boolean))];
+    return [...new Set([...jumpTargets, nextScreen?.id].filter(Boolean))];
 };
 
 const buildRoutingModel = (mainScreens, mainScreenIds) => mainScreens.reduce((routingModel, screen, screenIndex) => {
