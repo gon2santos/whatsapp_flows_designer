@@ -182,20 +182,23 @@ const findJumpItem = (screen, mainScreenIds) => screen.items.find((item) => (
     JUMP_NODE_TYPES.includes(item.type) && validJumpConditions(item, mainScreenIds).length > 0
 ));
 
-// Wraps the normal footer in a chain of "If" nodes, one per jump condition (first one checked outermost),
-// each navigating to its own target screen when its option matches; falls back to the normal footer otherwise.
+// Builds a "Switch" with one case per jump target, plus a "default" case for every option without one.
+// Unlike nested "If"s (capped at 3 levels deep by WhatsApp Flow), "Switch" has no nesting-depth limit, so
+// it scales to any number of jump conditions. The "default" key is required: omitting it (i.e. instead
+// listing every remaining option explicitly) is what caused Meta's real validator to crash.
 const buildFooterWithJump = (screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds) => {
     const fallbackFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId);
     const jumps = jumpItem ? validJumpConditions(jumpItem, mainScreenIds) : [];
     if (!jumps.length) return fallbackFooter;
 
     const fieldName = jumpItem.config?.id || jumpItem.name;
-    return jumps.reduceRight((elseFooter, jump) => ({
-        type: 'If',
-        condition: `\${form.${fieldName}} == '${jump.optionId}'`,
-        then: [buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, jump.screenId)],
-        else: [elseFooter],
-    }), fallbackFooter);
+    const cases = jumps.reduce((acc, jump) => {
+        acc[jump.optionId] = [buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, jump.screenId)];
+        return acc;
+    }, {});
+    cases.default = [fallbackFooter];
+
+    return { type: 'Switch', value: `\${form.${fieldName}}`, cases };
 };
 
 // Declares the shape of the data a screen expects to receive, i.e. everything forwarded from earlier screens.
@@ -218,13 +221,15 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenI
         screen: {
             id: screen.id,
             title: screen.name,
-            data: buildDataSchema(forwardedEntries),
+            // An empty "data": {} (vs. omitting the key entirely) on a screen with nothing forwarded into it
+            // appears to be what was crashing Meta's real validator, even though it looks harmless.
+            ...(forwardedEntries.length ? { data: buildDataSchema(forwardedEntries) } : {}),
             ...(resolveFooterTarget(screen, screens, screenIndex) === undefined ? { terminal: true } : {}),
             layout: {
                 type: 'SingleColumnLayout',
-                children: [
-                    { type: 'Form', name: 'flow_path', children: [...formChildren, footer] },
-                ],
+                // No "Form" wrapper: a Switch-based footer nested inside one appears to crash Meta's real
+                // validator while building its routing graph, and fields bind by "name" either way.
+                children: [...formChildren, footer],
             },
         },
         ownFields,
@@ -235,12 +240,9 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenI
 const buildLinkedScreen = (screen, itemInfoMap) => ({
     id: `${LINKED_SCREEN_ID_PREFIX}${screen.id}`,
     title: screen.name,
-    data: {},
     layout: {
         type: 'SingleColumnLayout',
-        children: [
-            { type: 'Form', name: 'flow_path', children: buildFormChildren(screen.items, screen.id, itemInfoMap) },
-        ],
+        children: buildFormChildren(screen.items, screen.id, itemInfoMap),
     },
 });
 
@@ -253,8 +255,9 @@ const screenSuccessors = (screen, screenIndex, mainScreens, mainScreenIds) => {
 };
 
 const buildRoutingModel = (mainScreens, mainScreenIds) => mainScreens.reduce((routingModel, screen, screenIndex) => {
-    const targets = screenSuccessors(screen, screenIndex, mainScreens, mainScreenIds);
-    if (targets.length) routingModel[screen.id] = targets;
+    // Every main screen must appear as a key, even with an empty array (e.g. a terminal screen with no
+    // outgoing target): omitting it appears to crash Meta's real validator while building the routing graph.
+    routingModel[screen.id] = screenSuccessors(screen, screenIndex, mainScreens, mainScreenIds);
     return routingModel;
 }, {});
 
