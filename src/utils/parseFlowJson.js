@@ -1,5 +1,6 @@
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from './slugify'
+import { COMPLETE_TARGET } from './footerTarget'
 
 // Mirrors buildFlowJson's LINKED_SCREEN_ID_PREFIX: screens only reachable via an OptIn's "Leer más" link.
 const LINKED_SCREEN_ID_PREFIX = 'OPTIN_SCREEN_';
@@ -41,10 +42,10 @@ const createItem = (internalType, name, config) => ({
 const screenSlug = (screenName) => screenName.replace(/\s+/g, '_');
 const payloadKey = (screenName, fieldName) => `${screenSlug(screenName)}_${fieldName}`;
 
-// Reverse of nodeDefinitions' toDataSource: the dummy single "Option" entry means the user hadn't typed any option yet.
+// Reverse of nodeDefinitions' toDataSource: the dummy single "option" entry means the user hasn't typed any option yet.
 const fromDataSource = (dataSource) => {
     if (!Array.isArray(dataSource) || dataSource.length === 0) return [''];
-    if (dataSource.length === 1 && dataSource[0]?.id === '0_Option' && dataSource[0]?.title === 'Option') return [''];
+    if (dataSource.length === 1 && dataSource[0]?.id === 'option' && dataSource[0]?.title === 'Option') return [''];
     return dataSource.map((entry) => entry?.title ?? '');
 };
 
@@ -161,10 +162,34 @@ const extractFooterChain = (node, screenId, nameToItemId, payloadKeyToItemId) =>
     return null;
 };
 
-// Pulls the footer out of a screen's form children, unwrapping any Jump-to-Screen "If" chain in front of it.
+// Pulls the footer out of a screen's form children, unwrapping either a Jump-to-Screen "Switch" (the current
+// format) or a chain of Jump-to-Screen "If"s (an older, now-fixed format that could exceed WhatsApp Flow's
+// 3-level "If" nesting limit once there were more than a couple of jump conditions).
+const SWITCH_VALUE_PATTERN = /^\$\{form\.([A-Za-z0-9_]+)\}$/;
+
 const extractFooterInfo = (formChildren, screenId, nameToItemId, payloadKeyToItemId) => {
     const last = formChildren[formChildren.length - 1];
     if (!last) return null;
+
+    if (last.type === 'Switch' && last.cases && typeof last.value === 'string') {
+        const match = SWITCH_VALUE_PATTERN.exec(last.value.trim());
+        const nodeId = match ? nameToItemId.get(`${screenId}:${match[1]}`) : null;
+        if (!nodeId) return null;
+
+        let footer = null;
+        const jumps = [];
+        Object.entries(last.cases).forEach(([optionId, caseNodes]) => {
+            const caseFooter = Array.isArray(caseNodes) ? caseNodes[0] : null;
+            if (caseFooter?.type !== FOOTER_TYPE) return;
+            // "default" is the fallback case, not a real jump target: it becomes the screen's normal footer.
+            if (optionId === 'default') { footer = caseFooter; return; }
+            footer = footer ?? caseFooter;
+            const jumpTargetName = caseFooter['on-click-action']?.next?.name;
+            if (jumpTargetName) jumps.push({ nodeId, optionId, screenId: stripLinkedScreenId(jumpTargetName) });
+        });
+        return footer ? { footer, jumps } : null;
+    }
+
     return extractFooterChain(last, screenId, nameToItemId, payloadKeyToItemId);
 };
 
@@ -247,8 +272,11 @@ export const parseFlowJson = (flow) => {
             throw new Error('Cada pantalla debe tener un "id" válido.');
         }
         const screenName = rawScreen.title || internalId;
-        const formNode = (rawScreen.layout?.children ?? []).find((child) => child?.type === 'Form');
-        const formChildren = Array.isArray(formNode?.children) ? formNode.children : [];
+        const layoutChildren = rawScreen.layout?.children ?? [];
+        // Supports both the current format (fields/footer as direct layout children) and the older one
+        // (everything wrapped in a "Form" component), for backward-compatibility when re-importing old exports.
+        const formNode = layoutChildren.find((child) => child?.type === 'Form');
+        const formChildren = Array.isArray(formNode?.children) ? formNode.children : layoutChildren;
 
         // Footer-shaped entries have no matching WA_TYPE_TO_INTERNAL mapping, so this naturally skips them;
         // items must be built (and registered) first so a same-screen Jump condition below can resolve by name.
@@ -266,8 +294,11 @@ export const parseFlowJson = (flow) => {
         const hasNext = !!footerInfo?.footer?.['on-click-action']?.next;
         const defaultLabel = hasNext ? 'Continuar' : 'Finalizar';
         const footerLabel = footerInfo?.footer?.label && footerInfo.footer.label !== defaultLabel ? footerInfo.footer.label : null;
+        // Pins the exact navigate/complete target from the JSON, so re-exporting matches regardless of array order.
+        const nextTargetName = footerInfo?.footer?.['on-click-action']?.next?.name;
+        const footerTarget = !footerInfo?.footer ? undefined : (nextTargetName ? stripLinkedScreenId(nextTargetName) : COMPLETE_TARGET);
 
-        return { id: internalId, name: screenName, items, footerLabel };
+        return { id: internalId, name: screenName, items, footerLabel, footerTarget };
     };
 
     const rawMainScreens = flow.screens.filter((screen) => !isLinkedScreenId(screen?.id));

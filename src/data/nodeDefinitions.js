@@ -11,6 +11,8 @@ import OptIn from '../components/Palette/OptIn'
 import MultipleChoice from '../components/Palette/MultipleChoice'
 import ParagraphAnswer from '../components/Palette/ParagraphAnswer'
 
+import { slugify } from '../utils/slugify'
+
 import DatePickerConfig from '../components/Config/DatePicker'
 import DropdownConfig from '../components/Config/DropdownOption'
 import ShortAnswerConfig from '../components/Config/ShortAnswer'
@@ -24,15 +26,24 @@ import OptInConfig from '../components/Config/OptIn'
 import MultipleChoiceConfig from '../components/Config/MultipleChoiceOption'
 import ParagraphAnswerConfig from '../components/Config/ParagraphAnswer'
 
-// Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries.
-// Falls back to a single dummy "Option" entry when the user hasn't added any real option yet,
+// Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries. Ids are plain slugs
+// (not index-prefixed, e.g. "0_go_to_screen_2"): a leading digit in a Switch "cases" key appears to crash
+// Meta's real validator. Falls back to a single dummy "option" entry when the user hasn't typed one yet,
 // since WhatsApp Flow requires a non-empty data-source.
 export const toDataSource = (options = []) => {
+    const usedIds = new Set();
     const dataSource = options
         .map((option) => option.trim())
         .filter(Boolean)
-        .map((option, index) => ({ id: `${index}_${option.replace(/\s+/g, '_')}`, title: option }));
-    return dataSource.length ? dataSource : [{ id: '0_Option', title: 'Option' }];
+        .map((option) => {
+            const base = slugify(option);
+            let id = base;
+            let suffix = 2;
+            while (usedIds.has(id)) { id = `${base}_${suffix}`; suffix += 1; }
+            usedIds.add(id);
+            return { id, title: option };
+        });
+    return dataSource.length ? dataSource : [{ id: 'option', title: 'Option' }];
 };
 
 const textField = (config) => config.text || 'Text';
