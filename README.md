@@ -1,19 +1,21 @@
-# React + Vite
+# WhatsApp Flow Designer
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Un editor visual para crear WhatsApp Flows y exportarlos como JSON.
 
-Currently, two official plugins are available:
+## Uso
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Arrastre bloques desde la paleta de la izquierda al canvas.
+- Seleccione una pantalla y edite la configuración del nodo seleccionado en el panel de configuración.
+- Reordene o duplique elementos según sea necesario en el constructor del flujo.
+- Cambia a la pestaña JSON para copiar, descargar o aplicar el flujo en JSON.
 
-## React Compiler
+## Shortcuts de teclado
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- Alt + arrastrar: duplica un nodo existente manteniendo su configuración.
+- Ctrl + B: aplica formato en negrita al texto seleccionado.
+- Ctrl + I: aplica formato en cursiva al texto seleccionado.
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+## Notas
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- El panel JSON se puede usar para pegar un flujo existente de WhatsApp e importarlo nuevamente al diseñador.
+- El JSON actualizado queda almacenado en el navegador, si cierra el mismo y reabre la herramienta se cargara el ultimo JSON editado
