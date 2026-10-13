@@ -1,6 +1,7 @@
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from './slugify'
 import { COMPLETE_TARGET } from './footerTarget'
+import { migrateOptionIds } from './migrateOptionIds'
 
 // Mirrors buildFlowJson's LINKED_SCREEN_ID_PREFIX: screens only reachable via an OptIn's "Leer más" link.
 const LINKED_SCREEN_ID_PREFIX = 'OPTIN_SCREEN_';
@@ -307,5 +308,5 @@ export const parseFlowJson = (flow) => {
     const mainScreens = rawMainScreens.map((rawScreen) => buildScreen(rawScreen, rawScreen.id));
     const linkedScreens = rawLinkedScreens.map((rawScreen) => buildScreen(rawScreen, stripLinkedScreenId(rawScreen.id)));
 
-    return [...mainScreens, ...linkedScreens];
+    return migrateOptionIds([...mainScreens, ...linkedScreens]);
 };
