@@ -1,3 +1,5 @@
+import { migrateOptionIds } from './migrateOptionIds'
+
 // Autosaves the designer's full state (screens + which one is active) to localStorage, so work survives reloads/crashes.
 const STORAGE_KEY = 'whatsapp_flows_designer.state.v1';
 
@@ -12,7 +14,7 @@ export const loadPersistedState = () => {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed?.screens) ? parsed : null;
+        return Array.isArray(parsed?.screens) ? { ...parsed, screens: migrateOptionIds(parsed.screens) } : null;
     } catch {
         return null;
     }

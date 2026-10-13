@@ -2,6 +2,7 @@ import nodeDefinitions from '../data/nodeDefinitions'
 import { collectLinkedScreenIds } from './linkedScreens'
 import { hasMarkdown } from './markdownShortcuts'
 import { resolveFooterTarget } from './footerTarget'
+import { migrateOptionIds } from './migrateOptionIds'
 
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
 
@@ -290,7 +291,8 @@ const unionFieldsByKey = (fieldSets) => {
 };
 
 // Builds the full WhatsApp Flow JSON document from the current screens/items state.
-export const buildFlowJson = (screens) => {
+export const buildFlowJson = (rawScreens) => {
+    const screens = migrateOptionIds(rawScreens);
     const linkedScreenIds = collectLinkedScreenIds(screens);
     const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
     const linkedScreens = screens.filter((screen) => linkedScreenIds.has(screen.id));
