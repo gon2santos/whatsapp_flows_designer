@@ -62,7 +62,8 @@
 }
 
 .json-icon-button img,
-.json-icon-button span {
+.json-icon-button span,
+.json-icon-button .json-icon-button__icon {
     position: absolute;
     top: 50%;
     right: 12px;
@@ -75,12 +76,18 @@
     height: 20px;
 }
 
+.json-icon-button .json-icon-button__icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
 .json-icon-button span {
     opacity: 0;
     white-space: nowrap;
 }
 
-.json-icon-button:hover:not(:disabled) img {
+.json-icon-button:hover:not(:disabled) img,
+.json-icon-button:hover:not(:disabled) .json-icon-button__icon {
     opacity: 0;
 }
 
@@ -91,6 +98,81 @@
 .json-icon-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Stays fixed-size in the flex flow so siblings never shift; the expanded menu overlays on top via absolute positioning. */
+.json-more-actions {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    background-color: var(--color-accent);
+}
+
+.json-more-actions-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    filter: invert(1);
+    transition: opacity var(--transition-fast);
+}
+
+.json-more-actions:hover .json-more-actions-icon {
+    opacity: 0;
+}
+
+.json-more-actions-menu {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-accent);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: width var(--transition-fast), height var(--transition-fast), padding var(--transition-fast), opacity var(--transition-fast);
+}
+
+.json-more-actions:hover .json-more-actions-menu {
+    width: 22ch;
+    height: auto;
+    padding: 8px;
+    overflow: visible;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.json-more-actions-item {
+    white-space: nowrap;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    background-color: var(--color-primary);
+    color: white;
+    font: inherit;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.json-more-actions-item:hover {
+    background-color: var(--color-primary-dark);
 }
 
 .json-preview-error {

@@ -3,10 +3,12 @@ import Editor from '@monaco-editor/react'
 import '../assets/CSS/JsonPreview.css'
 import { buildFlowJson } from '../utils/buildFlowJson'
 import { parseFlowJson } from '../utils/parseFlowJson'
+import { buildBotVariablesJson } from '../utils/buildBotVariablesJson'
 import Modal from '../components/Modal'
 import copyIcon from '../assets/UIIcons/copy.png'
 import downloadIcon from '../assets/UIIcons/direct-download.png'
 import applyIcon from '../assets/UIIcons/upload.png'
+import plusIcon from '../assets/UIIcons/plus.png'
 
 // Live JSON output for the whole flow, rebuilt from the current screens/items/config state.
 // Monaco (the VS Code editor) gives us formatting, syntax highlighting and error markers for free.
@@ -19,6 +21,7 @@ const JsonPreview = ({ screens, onImport }) => {
     const [error, setError] = useState('');
     const [pendingScreens, setPendingScreens] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [copiedVariables, setCopiedVariables] = useState(false);
 
     // Keeps the editor mirroring the live flow until the user starts typing their own JSON to apply.
     useEffect(() => {
@@ -29,6 +32,18 @@ const JsonPreview = ({ screens, onImport }) => {
         navigator.clipboard.writeText(draft);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
+    };
+
+    const handleCopyBotVariables = () => {
+        const botVariablesJson = buildBotVariablesJson(screens);
+        if (!botVariablesJson) {
+            setError('No hay variables para copiar: el flujo no tiene un payload "complete".');
+            return;
+        }
+        setError('');
+        navigator.clipboard.writeText(botVariablesJson);
+        setCopiedVariables(true);
+        setTimeout(() => setCopiedVariables(false), 1500);
     };
 
     const handleDownload = () => {
@@ -101,6 +116,14 @@ const JsonPreview = ({ screens, onImport }) => {
                     <img src={applyIcon} alt="" />
                     <span>Aplicar JSON</span>
                 </button>
+                <div className="json-more-actions">
+                    <img className="json-more-actions-icon" src={plusIcon} alt="" />
+                    <div className="json-more-actions-menu">
+                        <button type="button" className="json-more-actions-item" onClick={handleCopyBotVariables}>
+                            {copiedVariables ? 'Copied!' : 'Copy bot variables'}
+                        </button>
+                    </div>
+                </div>
             </div>
             {pendingScreens && (
                 <Modal title="Reemplazar diseño actual" onClose={cancelApply}>
