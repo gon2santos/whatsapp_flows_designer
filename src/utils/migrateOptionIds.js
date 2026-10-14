@@ -6,22 +6,27 @@ import { slugify } from './slugify'
 // matches any data-source id (and a leading digit in a Switch "cases" key crashes Meta's validator).
 const LEGACY_ID_PATTERN = /^(\d+)_(.*)$/;
 
-const resolveOptionId = (optionId, validIds) => {
+// Ids from when slugify dropped accented letters instead of transliterating them (e.g. "Sí" -> "s", now "si").
+const dropAccentsSlug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+const resolveOptionId = (optionId, validOptions) => {
+    const validIds = validOptions.map((option) => option.id);
     if (!optionId || validIds.includes(optionId)) return optionId;
-    const match = LEGACY_ID_PATTERN.exec(optionId);
-    if (!match) return optionId;
-    const [, index, title] = match;
-    const slugged = slugify(title);
+    const bare = LEGACY_ID_PATTERN.exec(optionId)?.[2] ?? optionId;
+    const slugged = slugify(bare);
     if (validIds.includes(slugged)) return slugged;
-    return validIds[Number(index)] ?? optionId;
+    const accentDropped = validOptions.find((option) => dropAccentsSlug(option.title) === dropAccentsSlug(bare));
+    if (accentDropped) return accentDropped.id;
+    const index = LEGACY_ID_PATTERN.exec(optionId)?.[1];
+    return index !== undefined ? (validIds[Number(index)] ?? optionId) : optionId;
 };
 
 // Returns screens with every Jump/Visibility condition's optionId rewritten to the source node's current ids.
 export const migrateOptionIds = (screens) => {
-    const validIdsByItemId = new Map();
+    const optionsByItemId = new Map();
     screens.forEach((screen) => screen.items.forEach((item) => {
         if (item.isPreview || !['dropdown', 'radio'].includes(item.type)) return;
-        validIdsByItemId.set(item.id, toDataSource(item.config?.options).map((option) => option.id));
+        optionsByItemId.set(item.id, toDataSource(item.config?.options));
     }));
 
     return screens.map((screen) => ({
@@ -31,13 +36,13 @@ export const migrateOptionIds = (screens) => {
             if (!jumpConditions?.length && !visibilityConditions?.length) return item;
             const config = { ...item.config };
             if (jumpConditions?.length) {
-                const ownIds = validIdsByItemId.get(item.id) ?? [];
-                config.jumpConditions = jumpConditions.map((jump) => ({ ...jump, optionId: resolveOptionId(jump.optionId, ownIds) }));
+                const ownOptions = optionsByItemId.get(item.id) ?? [];
+                config.jumpConditions = jumpConditions.map((jump) => ({ ...jump, optionId: resolveOptionId(jump.optionId, ownOptions) }));
             }
             if (visibilityConditions?.length) {
                 config.visibilityConditions = visibilityConditions.map((condition) => ({
                     ...condition,
-                    optionId: resolveOptionId(condition.optionId, validIdsByItemId.get(condition.nodeId) ?? []),
+                    optionId: resolveOptionId(condition.optionId, optionsByItemId.get(condition.nodeId) ?? []),
                 }));
             }
             return { ...item, config };
