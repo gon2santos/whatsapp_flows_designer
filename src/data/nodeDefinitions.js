@@ -27,7 +27,7 @@ import MultipleChoiceConfig from '../components/Config/MultipleChoiceOption'
 import ParagraphAnswerConfig from '../components/Config/ParagraphAnswer'
 
 // Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries. Ids are plain slugs
-// (not index-prefixed, e.g. "0_go_to_screen_2"): a leading digit in a Switch "cases" key appears to crash
+// that keep the option's letter case (not index-prefixed, e.g. "0_go_to_screen_2"): a leading digit in a Switch "cases" key appears to crash
 // Meta's real validator. Falls back to a single dummy "option" entry when the user hasn't typed one yet,
 // since WhatsApp Flow requires a non-empty data-source.
 export const toDataSource = (options = []) => {
@@ -36,7 +36,7 @@ export const toDataSource = (options = []) => {
         .map((option) => option.trim())
         .filter(Boolean)
         .map((option) => {
-            const base = slugify(option);
+            const base = slugify(option, { preserveCase: true });
             let id = base;
             let suffix = 2;
             while (usedIds.has(id)) { id = `${base}_${suffix}`; suffix += 1; }
