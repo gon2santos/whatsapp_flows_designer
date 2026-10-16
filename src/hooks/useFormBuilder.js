@@ -3,6 +3,7 @@ import { isSortable } from '@dnd-kit/react/sortable'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from '../utils/slugify'
 import { collectLinkedScreenIds, LINKED_SCREEN_ALLOWED_TYPES } from '../utils/linkedScreens'
+import { navMenuDropRestriction } from '../utils/navMenu'
 import { loadPersistedState, savePersistedState } from '../utils/storage'
 
 // Read once up front: both initial state values below derive from the same stored snapshot.
@@ -179,6 +180,9 @@ export const useFormBuilder = () => {
             // Same for the OptIn-specific cap: no point previewing a 6th OptIn node.
             if (draggedType === OPTIN_TYPE && countOptInNodes(withoutPreview) >= MAX_OPTIN_PER_SCREEN) return withoutPreview;
 
+            // Same for Nav Menu exclusivity: it can't share a screen with other nodes.
+            if (navMenuDropRestriction(withoutPreview, draggedType)) return withoutPreview;
+
             if (!target) return withoutPreview;
 
             let targetIndex;
@@ -247,11 +251,14 @@ export const useFormBuilder = () => {
             const realItemCount = countNodeSlots(screenItems);
             const hasRoom = realItemCount < MAX_NODES_PER_SCREEN;
             const isOptInAllowed = draggedType !== OPTIN_TYPE || countOptInNodes(screenItems) < MAX_OPTIN_PER_SCREEN;
+            const navMenuMessage = navMenuDropRestriction(screenItems, draggedType);
+            const isNavMenuAllowed = !navMenuMessage;
             if (shouldCommit && !isTypeAllowed) setRestrictedDropMessage(LINKED_SCREEN_RESTRICTION_MESSAGE);
+            else if (shouldCommit && !isNavMenuAllowed) setRestrictedDropMessage(navMenuMessage);
             else if (shouldCommit && !isOptInAllowed) setRestrictedDropMessage(OPTIN_LIMIT_MESSAGE);
 
             updateActiveScreenItems((currentItems) => (
-                shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed
+                shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed && isNavMenuAllowed
                     ? currentItems.map((item) => (
                         item.id === PREVIEW_ID ? createItemFromPreview(item, lockRequired) : item
                     ))

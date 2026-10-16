@@ -72,7 +72,7 @@ const FormItem = ({ id, index, type, title, name, config, onConfigChange, screen
                             onPruneLinkedScreen={onPruneLinkedScreen}
                         />
                     )}
-                    {visibilitySources.length > 0 && (
+                    {visibilitySources.length > 0 && type !== 'nav-menu' && (
                         <VisibilityConditions
                             config={currentConfig}
                             onChange={(newConfig) => onConfigChange(id, newConfig)}

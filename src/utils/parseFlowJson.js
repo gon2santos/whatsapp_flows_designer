@@ -2,6 +2,7 @@ import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from './slugify'
 import { COMPLETE_TARGET } from './footerTarget'
 import { migrateOptionIds } from './migrateOptionIds'
+import { NAV_MENU_TYPE, NAV_MENU_WA_TYPE, navMenuConfigFromNode } from './navMenu'
 
 // Mirrors buildFlowJson's LINKED_SCREEN_ID_PREFIX: screens only reachable via an OptIn's "Leer más" link.
 const LINKED_SCREEN_ID_PREFIX = 'OPTIN_SCREEN_';
@@ -22,13 +23,14 @@ const WA_TYPE_TO_INTERNAL = {
     TextBody: 'text-body',
     TextSubheading: 'text-small-heading',
     TextHeading: 'text-large-heading',
+    [NAV_MENU_WA_TYPE]: NAV_MENU_TYPE,
 };
 
 // Node types whose config can hold "Top text" (a standalone TextBody rendered right above them by buildFlowJson).
 const TOP_TEXT_ELIGIBLE_TYPES = ['short-answer', 'paragraph-answer', 'date-picker', 'dropdown', 'radio', 'multiple-choice'];
 
 // Node types whose WhatsApp Flow JSON carries a "name", i.e. they can be a Visibility/Jump source or forwarded payload entry.
-const NAMED_TYPES = ['short-answer', 'paragraph-answer', 'date-picker', 'dropdown', 'multiple-choice', 'radio', 'opt-in'];
+const NAMED_TYPES = ['short-answer', 'paragraph-answer', 'date-picker', 'dropdown', 'multiple-choice', 'radio', 'opt-in', NAV_MENU_TYPE];
 
 const titleFor = (internalType) => nodeDefinitions.find((definition) => definition.type === internalType)?.title ?? internalType;
 
@@ -80,6 +82,8 @@ const configFromNode = (internalType, node) => {
                 label: node.label ?? '', required: !!node.required,
                 ...(node['on-click-action']?.next?.name ? { linkedScreenId: stripLinkedScreenId(node['on-click-action'].next.name) } : {}),
             };
+        case NAV_MENU_TYPE:
+            return navMenuConfigFromNode(node, stripLinkedScreenId);
         case 'image':
             return { src: node.src ?? '', mimeType: '', fileName: '', height: Number(node.height) || 200 };
         case 'text-caption':

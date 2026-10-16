@@ -1,4 +1,4 @@
-import { toDataSource } from '../../data/nodeDefinitions'
+import { toDataSource, MAX_JUMP_CONDITIONS } from '../../data/nodeDefinitions'
 
 // Conditional navigation editor shared by Dropdown/Radio configs: one or more "If [option] go to [screen]"
 // rules, one per data-source option at most. Stored as config.jumpConditions = [{ optionId, screenId }, ...].
@@ -8,7 +8,7 @@ const JumpToScreen = ({ config, onChange, screens = [], activeScreenId }) => {
     const jumps = config.jumpConditions ?? [];
     // Always show at least one (possibly empty) row, matching the single-condition UI this replaces.
     const displayJumps = jumps.length ? jumps : [{ optionId: '', screenId: '' }];
-    const canAddMore = displayJumps.length < options.length;
+    const canAddMore = displayJumps.length < Math.min(options.length, MAX_JUMP_CONDITIONS);
 
     const updateJump = (index, nextJump) => {
         onChange({ ...config, jumpConditions: displayJumps.map((jump, i) => (i === index ? nextJump : jump)) });
@@ -57,6 +57,7 @@ const JumpToScreen = ({ config, onChange, screens = [], activeScreenId }) => {
                 </div>
             ))}
             <button type="button" onClick={addJump} disabled={!canAddMore}>Add condition</button>
+            {displayJumps.length >= MAX_JUMP_CONDITIONS && <small>Maximum of {MAX_JUMP_CONDITIONS} conditions (WhatsApp Flow limits nested If components).</small>}
         </div>
     );
 }

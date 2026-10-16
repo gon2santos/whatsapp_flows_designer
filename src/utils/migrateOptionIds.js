@@ -1,4 +1,5 @@
 import { toDataSource } from '../data/nodeDefinitions'
+import { slugify } from './slugify'
 
 // Older versions of this tool generated option ids as "<index>_<title>" (e.g. "0_Sí"); current ones are plain
 // slugs (e.g. "s"). Stored/imported Jump and Visibility conditions may still hold the old form, which no longer
@@ -18,7 +19,8 @@ const resolveOptionId = (optionId, validOptions) => {
     if (byCurrentId) return byCurrentId.id;
     const bySlug = validOptions.find((option) => {
         const legacySlug = dropAccentsSlug(option.title);
-        return legacySlug === lowerBare || legacySlug === dropAccentsSlug(bare);
+        return legacySlug === lowerBare || legacySlug === dropAccentsSlug(bare)
+            || slugify(option.title, { preserveCase: true }).toLowerCase() === lowerBare;
     });
     if (bySlug) return bySlug.id;
     return legacyMatch ? (validOptions[Number(legacyMatch[1])]?.id ?? optionId) : optionId;
