@@ -1,8 +1,9 @@
-import nodeDefinitions from '../data/nodeDefinitions'
+import nodeDefinitions, { MAX_JUMP_CONDITIONS } from '../data/nodeDefinitions'
 import { collectLinkedScreenIds } from './linkedScreens'
 import { hasMarkdown } from './markdownShortcuts'
 import { resolveFooterTarget } from './footerTarget'
 import { migrateOptionIds } from './migrateOptionIds'
+import { NAV_MENU_TYPE, NAV_MENU_WA_TYPE, navMenuItemIds } from './navMenu'
 
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
 
@@ -11,7 +12,7 @@ const LINKED_SCREEN_ID_PREFIX = 'OPTIN_SCREEN_';
 
 // Points an OptIn node's own on-click-action at the linked screen's final (prefixed) id.
 const withLinkedScreenId = (node) => (
-    node['on-click-action']?.next?.name
+    node.type !== NAV_MENU_WA_TYPE && node['on-click-action']?.next?.name
         ? {
             ...node,
             'on-click-action': {
@@ -139,12 +140,58 @@ const flattenConditionalNodes = (nodes) => nodes.flatMap((node) => (
 
 // Only nodes with a "name" (TextInput, Dropdown, DatePicker, etc.) hold a user answer worth forwarding.
 const ownFieldsOf = (formChildren, screenName) => flattenConditionalNodes(formChildren)
-    .filter((node) => typeof node.name === 'string')
+    .filter((node) => typeof node.name === 'string' && node.type !== NAV_MENU_WA_TYPE)
     .map((node) => ({
         key: payloadKey(screenName, node.name),
         formRef: `\${form.${node.name}}`,
         dataType: DATA_TYPE_BY_WA_TYPE[node.type] ?? 'string',
     }));
+
+// A Nav Menu whose items each navigate forwards the clicked item's id as a field of its own.
+const navMenuItemsOf = (screen) => screen.items.filter((item) => !item.isPreview && item.type === NAV_MENU_TYPE);
+const navMenuField = (screen, item) => ({ key: payloadKey(screen.name, item.config?.id || item.name), dataType: 'string' });
+const navMenuOwnFields = (screen) => navMenuItemsOf(screen)
+    .filter((item) => item.config?.actionLevel !== 'component')
+    .map((item) => navMenuField(screen, item));
+const screenOwnFields = (screen, formChildren) => [...ownFieldsOf(formChildren, screen.name), ...navMenuOwnFields(screen)];
+
+// Where a Nav Menu click navigates: its chosen main screen, or (when unset/invalid) the next screen in order.
+const resolveNavTarget = (screenId, mainScreens, screenIndex, mainScreenIds, currentScreenId) => (
+    screenId && screenId !== currentScreenId && mainScreenIds.has(screenId) ? screenId : mainScreens[screenIndex + 1]?.id
+);
+
+const navMenuTargets = (screen, mainScreens, screenIndex, mainScreenIds) => navMenuItemsOf(screen).flatMap((item) => {
+    const config = item.config ?? {};
+    const rawTargets = config.actionLevel === 'component' ? [config.screenId] : (config.items ?? []).map((entry) => entry.screenId);
+    return rawTargets.map((targetId) => resolveNavTarget(targetId, mainScreens, screenIndex, mainScreenIds, screen.id));
+}).filter(Boolean);
+
+// Adds the on-click-action(s) to a Nav Menu node: at component level (one action for every item) or per item.
+const applyNavMenuActions = (node, item, screen, mainScreens, screenIndex, mainScreenIds, forwardedEntries, incomingFieldsByScreenId) => {
+    const config = item.config ?? {};
+    const itemIds = navMenuItemIds(config.items);
+    const ownField = navMenuField(screen, item);
+
+    const buildAction = (rawTargetId, selection) => {
+        const targetId = resolveNavTarget(rawTargetId, mainScreens, screenIndex, mainScreenIds, screen.id);
+        if (!targetId) return null;
+        const ownFields = selection === undefined ? [] : [{ key: ownField.key, formRef: selection }];
+        const payload = buildPayload(ownFields, forwardedEntries, incomingFieldsByScreenId.get(targetId) ?? []);
+        return { name: 'navigate', next: { name: targetId, type: 'screen' }, payload };
+    };
+
+    if (config.actionLevel === 'component') {
+        const action = buildAction(config.screenId);
+        return action ? { ...node, 'on-click-action': action } : node;
+    }
+    return {
+        ...node,
+        'list-items': node['list-items'].map((listItem, index) => {
+            const action = buildAction(config.items?.[index]?.screenId, itemIds[index]);
+            return action ? { ...listItem, 'on-click-action': action } : listItem;
+        }),
+    };
+};
 
 // The payload sent on navigate/complete: this screen's own answers, then everything forwarded from earlier screens.
 // WhatsApp Flow requires a navigate payload to match the target screen's declared data model exactly, so when a
@@ -185,30 +232,31 @@ const JUMP_NODE_TYPES = ['dropdown', 'radio'];
 
 // This item's jump conditions that still point at a real, selectable main screen.
 const validJumpConditions = (item, mainScreenIds) => (item.config?.jumpConditions ?? [])
-    .filter((jump) => jump?.optionId && jump?.screenId && mainScreenIds.has(jump.screenId));
+    .filter((jump) => jump?.optionId && jump?.screenId && mainScreenIds.has(jump.screenId))
+    .slice(0, MAX_JUMP_CONDITIONS);
 
 // First item on the screen with at least one valid, resolvable jump condition, if any.
 const findJumpItem = (screen, mainScreenIds) => screen.items.find((item) => (
     JUMP_NODE_TYPES.includes(item.type) && validJumpConditions(item, mainScreenIds).length > 0
 ));
 
-// Builds a "Switch" with one case per jump target, plus a "default" case for every option without one.
-// Unlike nested "If"s (capped at 3 levels deep by WhatsApp Flow), "Switch" has no nesting-depth limit, so
-// it scales to any number of jump conditions. The "default" key is required: omitting it (i.e. instead
-// listing every remaining option explicitly) is what caused Meta's real validator to crash.
+// Builds the footer for a screen with jump conditions as a chain of "If"s nested through "else": each jump is
+// "If <field> == '<option title>' then <Footer → target> else [next If]", ending with the default Footer.
+// (Switch can't be used: its "cases" keys can't hold spaces/accents, and Meta rejects several sibling Footers.)
+// WhatsApp Flow caps "If" nesting at 3 levels, so only the first MAX_JUMP_CONDITIONS jumps are emitted; the
+// Jump to Screen editor enforces the same cap. Returns an array of nodes.
 const buildFooterWithJump = (screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds) => {
     const fallbackFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId);
-    const jumps = jumpItem ? validJumpConditions(jumpItem, mainScreenIds) : [];
-    if (!jumps.length) return fallbackFooter;
+    const jumps = jumpItem ? validJumpConditions(jumpItem, mainScreenIds): [];
+    if (!jumps.length) return [fallbackFooter];
 
-    const fieldName = jumpItem.config?.id || jumpItem.name;
-    const cases = jumps.reduce((acc, jump) => {
-        acc[jump.optionId] = [buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, jump.screenId)];
-        return acc;
-    }, {});
-    cases.default = [fallbackFooter];
-
-    return { type: 'Switch', value: `\${form.${fieldName}}`, cases };
+    const reference = `\${form.${jumpItem.config?.id || jumpItem.name}}`;
+    return jumps.reduceRight((elseBranch, jump) => [{
+        type: 'If',
+        condition: `${reference} == '${jump.optionId}'`,
+        then: [buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId, jump.screenId)],
+        else: elseBranch,
+    }], [fallbackFooter]);
 };
 
 // Declares the shape of the data a screen expects to receive, i.e. everything forwarded from earlier screens.
@@ -222,10 +270,17 @@ const buildDataSchema = (forwardedEntries) => forwardedEntries.reduce((schema, {
 }, {});
 
 const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenIds, itemInfoMap, incomingFieldsByScreenId) => {
-    const formChildren = buildFormChildren(screen.items, screen.id, itemInfoMap);
-    const ownFields = ownFieldsOf(formChildren, screen.name);
+    const rawFormChildren = buildFormChildren(screen.items, screen.id, itemInfoMap);
+    const navItems = navMenuItemsOf(screen);
+    const isNavScreen = navItems.length > 0;
+    let navIndex = 0;
+    const formChildren = rawFormChildren.map((node) => (node.type === NAV_MENU_WA_TYPE
+        ? applyNavMenuActions(node, navItems[navIndex++], screen, screens, screenIndex, mainScreenIds, forwardedEntries, incomingFieldsByScreenId)
+        : node));
+    const ownFields = screenOwnFields(screen, rawFormChildren);
     const jumpItem = findJumpItem(screen, mainScreenIds);
-    const footer = buildFooterWithJump(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds);
+    // A Nav Menu screen navigates through its items: it has no Footer and is never terminal.
+    const footer = isNavScreen ? [] : buildFooterWithJump(screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds);
 
     return {
         screen: {
@@ -234,12 +289,12 @@ const buildScreen = (screen, screens, screenIndex, forwardedEntries, mainScreenI
             // An empty "data": {} (vs. omitting the key entirely) on a screen with nothing forwarded into it
             // appears to be what was crashing Meta's real validator, even though it looks harmless.
             ...(forwardedEntries.length ? { data: buildDataSchema(forwardedEntries) } : {}),
-            ...(resolveFooterTarget(screen, screens, screenIndex) === undefined ? { terminal: true } : {}),
+            ...(!isNavScreen && resolveFooterTarget(screen, screens, screenIndex) === undefined ? { terminal: true } : {}),
             layout: {
                 type: 'SingleColumnLayout',
-                // No "Form" wrapper: a Switch-based footer nested inside one appears to crash Meta's real
+                // No "Form" wrapper: a conditional footer nested inside one appears to crash Meta's real
                 // validator while building its routing graph, and fields bind by "name" either way.
-                children: [...formChildren, footer],
+                children: [...formChildren, ...footer],
             },
         },
         ownFields,
@@ -258,6 +313,7 @@ const buildLinkedScreen = (screen, itemInfoMap) => ({
 
 // Every screen a jump/normal-next could lead to, used so WhatsApp Flow can validate non-linear navigation.
 const screenSuccessors = (screen, screenIndex, mainScreens, mainScreenIds) => {
+    if (navMenuItemsOf(screen).length) return [...new Set(navMenuTargets(screen, mainScreens, screenIndex, mainScreenIds))];
     const jumpItem = findJumpItem(screen, mainScreenIds);
     const jumpTargets = jumpItem ? validJumpConditions(jumpItem, mainScreenIds).map((jump) => jump.screenId) : [];
     const defaultTarget = resolveFooterTarget(screen, mainScreens, screenIndex);
@@ -307,7 +363,7 @@ export const buildFlowJson = (rawScreens) => {
     mainScreens.forEach((screen) => {
         const predecessorIds = predecessorsByScreenId.get(screen.id) ?? [];
         const incomingFields = unionFieldsByKey(predecessorIds.map((id) => outgoingFieldsByScreenId.get(id) ?? []));
-        const ownFields = ownFieldsOf(buildFormChildren(screen.items, screen.id, itemInfoMap), screen.name);
+        const ownFields = screenOwnFields(screen, buildFormChildren(screen.items, screen.id, itemInfoMap));
         incomingFieldsByScreenId.set(screen.id, incomingFields);
         outgoingFieldsByScreenId.set(screen.id, [...incomingFields, ...ownFields]);
     });
@@ -318,7 +374,7 @@ export const buildFlowJson = (rawScreens) => {
     });
 
     const builtLinkedScreens = linkedScreens.map((screen) => buildLinkedScreen(screen, itemInfoMap));
-    const hasJumps = mainScreens.some((screen) => findJumpItem(screen, mainScreenIds));
+    const hasJumps = mainScreens.some((screen) => findJumpItem(screen, mainScreenIds) || navMenuItemsOf(screen).length);
 
     return {
         version: '7.3',

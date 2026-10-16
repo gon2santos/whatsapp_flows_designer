@@ -11,7 +11,6 @@ import OptIn from '../components/Palette/OptIn'
 import MultipleChoice from '../components/Palette/MultipleChoice'
 import ParagraphAnswer from '../components/Palette/ParagraphAnswer'
 
-import { slugify } from '../utils/slugify'
 
 import DatePickerConfig from '../components/Config/DatePicker'
 import DropdownConfig from '../components/Config/DropdownOption'
@@ -25,10 +24,15 @@ import RadioConfig from '../components/Config/RadioOption'
 import OptInConfig from '../components/Config/OptIn'
 import MultipleChoiceConfig from '../components/Config/MultipleChoiceOption'
 import ParagraphAnswerConfig from '../components/Config/ParagraphAnswer'
+import NavMenuConfig from '../components/Config/NavMenu'
+import NavMenu from '../components/Palette/NavMenu'
+import { NAV_MENU_TYPE, NAV_MENU_DEFAULT_CONFIG, navMenuToJson } from '../utils/navMenu'
 
-// Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries. Ids are plain slugs
-// that keep the option's letter case (not index-prefixed, e.g. "0_go_to_screen_2"): a leading digit in a Switch "cases" key appears to crash
-// Meta's real validator. Falls back to a single dummy "option" entry when the user hasn't typed one yet,
+// WhatsApp Flow allows at most 3 nested "If" levels; a Jump to Screen chain uses one level per jump.
+export const MAX_JUMP_CONDITIONS = 3;
+
+// Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries. Ids are exactly the
+// option title (duplicates get a "_2" suffix). Falls back to a single dummy "option" entry when the user hasn't typed one yet,
 // since WhatsApp Flow requires a non-empty data-source.
 export const toDataSource = (options = []) => {
     const usedIds = new Set();
@@ -36,7 +40,7 @@ export const toDataSource = (options = []) => {
         .map((option) => option.trim())
         .filter(Boolean)
         .map((option) => {
-            const base = slugify(option, { preserveCase: true });
+            const base = option.replace(/"/g, '');
             let id = base;
             let suffix = 2;
             while (usedIds.has(id)) { id = `${base}_${suffix}`; suffix += 1; }
@@ -158,6 +162,14 @@ const nodeDefinitions = [
         toJson: (config) => ({
             type: 'Image', src: config.src || '', 'scale-type': 'contain', height: Number(config.height) || 200,
         }),
+    },
+    {
+        type: NAV_MENU_TYPE,
+        title: 'Nav Menu',
+        Icon: NavMenu,
+        ConfigComponent: NavMenuConfig,
+        defaultConfig: NAV_MENU_DEFAULT_CONFIG,
+        toJson: navMenuToJson,
     },
     {
         type: 'text-caption',
