@@ -1,20 +1,61 @@
 .screens-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row-reverse;
     width: 100%;
     height: 100%;
 }
 
-.screens-tabs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding-bottom: 10px;
-    overflow-x: auto;
+.screens-tabs-slot {
+    width: 44px;
     flex-shrink: 0;
+    transition: width var(--transition-fast);
+}
+
+.screens-tabs-slot:hover {
+    width: 220px;
+}
+
+.screens-container > :not(.screens-tabs-slot) {
+    flex: 1;
+    min-width: 0;
+}
+
+.screens-tabs {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+    padding: 6px;
+    overflow: hidden;
+    background-color: var(--color-surface-alt);
+    border-radius: var(--radius-sm);
+}
+
+.screens-tabs:hover {
+    overflow-y: auto;
+}
+
+.screens-tabs-icon {
+    display: flex;
+    justify-content: center;
+    color: var(--color-accent);
+    padding: 4px 0;
+}
+
+.screens-tabs:hover .screens-tabs-icon {
+    display: none;
+}
+
+.screens-tabs:not(:hover) > :not(.screens-tabs-icon) {
+    display: none;
 }
 
 .screen-tab {
+    position: relative;
+    min-width: 0;
     display: flex;
     align-items: center;
     background-color: var(--color-surface-alt);
@@ -41,8 +82,14 @@
     font: inherit;
     font-weight: 500;
     color: var(--color-text);
-    padding: 2px 4px;
+    padding: 2px 22px 2px 4px;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: clip;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent calc(100% - 20px));
+    mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent calc(100% - 20px));
 }
 
 .screen-tab-link-icon {
@@ -51,6 +98,11 @@
 }
 
 .screen-tab-remove {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    z-index: 1;
     background: none;
     border: none;
     cursor: pointer;
@@ -91,4 +143,14 @@
     color: var(--color-text-muted);
     text-align: center;
     padding: 20px;
+}
+
+/* Visual-only: while the form is squeezed by the expanded tabs, the footer label shows as "..." */
+.screens-container:has(.screens-tabs-slot:hover) .screen-footer-button {
+    font-size: 0;
+}
+
+.screens-container:has(.screens-tabs-slot:hover) .screen-footer-button::after {
+    content: "...";
+    font-size: 1rem;
 }
