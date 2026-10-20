@@ -10,6 +10,7 @@ const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedS
     const nodeCount = countNodeSlots(items.filter((item) => !item.isPreview));
     // A Nav Menu navigates through its own items, so its screen has no Footer.
     const hasNavMenu = items.some((item) => item.type === 'nav-menu' && !item.isPreview);
+    const activeScreenName = screens.find((screen) => screen.id === activeScreenId)?.name;
     const isAtLimit = nodeCount >= MAX_NODES_PER_SCREEN;
 
     return (
@@ -21,8 +22,9 @@ const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedS
                         checked={lockRequired}
                         onChange={onToggleLockRequired}
                     />
-                    Lock required
+                    <span className="screen-lock-required-text">Lock required</span>
                 </label>
+                <div className="screen-toolbar-name" title={activeScreenName}>{activeScreenName}</div>
                 <div className={`screen-node-counter${isAtLimit ? ' screen-node-counter--limit' : ''}`}>
                     {nodeCount}/{MAX_NODES_PER_SCREEN}
                 </div>
