@@ -11,7 +11,7 @@ const LinkIcon = () => (
     </svg>
 );
 
-const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onFooterTargetChange, onConfigChange, onPruneLinkedScreen, lockRequired, onToggleLockRequired }) => {
+const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemoveScreen, onMoveScreen, onSelectScreen, onRenameScreen, onFooterLabelChange, onFooterTargetChange, onConfigChange, onPruneLinkedScreen, lockRequired, onToggleLockRequired }) => {
     const [renamingScreenId, setRenamingScreenId] = useState(null);
     const [renameValue, setRenameValue] = useState('');
     const linkedScreenIds = collectLinkedScreenIds(screens);
@@ -65,8 +65,30 @@ const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemov
                             </g>
                         </svg>
                     </div>
-                    {screens.map((screen) => (
+                    {screens.map((screen, screenIndex) => (
                         <div key={screen.id} className={`screen-tab ${screen.id === activeScreenId ? 'active' : ''}`}>
+                            {screen.id === activeScreenId && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="screen-tab-move"
+                                        onClick={() => onMoveScreen(screen.id, -1)}
+                                        disabled={screenIndex === 0}
+                                        aria-label={`Move ${screen.name} up`}
+                                    >
+                                        ▲
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="screen-tab-move"
+                                        onClick={() => onMoveScreen(screen.id, 1)}
+                                        disabled={screenIndex === screens.length - 1}
+                                        aria-label={`Move ${screen.name} down`}
+                                    >
+                                        ▼
+                                    </button>
+                                </>
+                            )}
                             <button
                                 type="button"
                                 className="screen-tab-label"

@@ -22,3 +22,28 @@ export const collectVisibilitySources = (screens, screenId, itemIndex) => {
     });
     return sources;
 };
+
+// After screens are reordered, a Visibility condition may reference a node that now sits on a LATER screen, whose
+// answer can't be available yet. Drops those conditions (empty, not-yet-filled ones are kept); returns the same
+// array when nothing needed to change. Linked screens are left alone: they have no visibility sources at all.
+export const pruneUnavailableVisibilityConditions = (screens) => {
+    const linkedScreenIds = collectLinkedScreenIds(screens);
+    let changed = false;
+    const pruned = screens.map((screen) => {
+        if (linkedScreenIds.has(screen.id)) return screen;
+        let screenChanged = false;
+        const items = screen.items.map((item, index) => {
+            const conditions = item.config?.visibilityConditions;
+            if (!conditions?.length) return item;
+            const availableIds = new Set(collectVisibilitySources(screens, screen.id, index).map((source) => source.id));
+            const kept = conditions.filter((condition) => !condition.nodeId || availableIds.has(condition.nodeId));
+            if (kept.length === conditions.length) return item;
+            screenChanged = true;
+            return { ...item, config: { ...item.config, visibilityConditions: kept } };
+        });
+        if (!screenChanged) return screen;
+        changed = true;
+        return { ...screen, items };
+    });
+    return changed ? pruned : screens;
+};
