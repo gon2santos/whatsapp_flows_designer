@@ -13,6 +13,7 @@ function App() {
     items,
     addScreen,
     removeScreen,
+    moveScreen,
     selectScreen,
     renameScreen,
     setFooterLabel,
@@ -39,6 +40,7 @@ function App() {
             items={items}
             onAddScreen={addScreen}
             onRemoveScreen={removeScreen}
+            onMoveScreen={moveScreen}
             onSelectScreen={selectScreen}
             onRenameScreen={renameScreen}
             onFooterLabelChange={setFooterLabel}

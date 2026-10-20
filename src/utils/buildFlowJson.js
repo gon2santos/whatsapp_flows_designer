@@ -346,13 +346,33 @@ const unionFieldsByKey = (fieldSets) => {
     return [...byKey.values()];
 };
 
+// Screens ordered so every screen comes after the ones that can navigate into it (reverse DFS post-order from
+// the entry screen; a back edge in a loop is ignored). Array order alone isn't enough once screens can be
+// rearranged, since an explicit footer/Jump target may point at a screen placed earlier than its source.
+const topologicalScreenOrder = (mainScreens, mainScreenIds) => {
+    const screenById = new Map(mainScreens.map((screen) => [screen.id, screen]));
+    const visited = new Set();
+    const postOrder = [];
+    const visit = (screen, screenIndex) => {
+        visited.add(screen.id);
+        screenSuccessors(screen, screenIndex, mainScreens, mainScreenIds).forEach((targetId) => {
+            if (!visited.has(targetId) && screenById.has(targetId)) visit(screenById.get(targetId), mainScreens.indexOf(screenById.get(targetId)));
+        });
+        postOrder.push(screen);
+    };
+    mainScreens.forEach((screen, screenIndex) => { if (!visited.has(screen.id)) visit(screen, screenIndex); });
+    return postOrder.reverse();
+};
+
 // Builds the full WhatsApp Flow JSON document from the current screens/items state.
 export const buildFlowJson = (rawScreens) => {
     const screens = migrateOptionIds(rawScreens);
     const linkedScreenIds = collectLinkedScreenIds(screens);
     const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
     const linkedScreens = screens.filter((screen) => linkedScreenIds.has(screen.id));
-    const mainScreenIds = new Set(mainScreens.map((screen) => screen.id));
+    // Screens that Jump/Nav Menu targets may point at. The entry (first) screen is excluded: Meta only accepts
+    // an entry screen with no inbound edge, so a target pointing back at it is ignored.
+    const mainScreenIds = new Set(mainScreens.slice(1).map((screen) => screen.id));
     const itemInfoMap = buildItemInfoMap(screens);
     const predecessorsByScreenId = buildPredecessorMap(mainScreens, mainScreenIds);
 
@@ -360,7 +380,7 @@ export const buildFlowJson = (rawScreens) => {
     // footer, since a screen's payload must be filtered against the DECLARED data model of whatever it navigates to.
     const incomingFieldsByScreenId = new Map();
     const outgoingFieldsByScreenId = new Map();
-    mainScreens.forEach((screen) => {
+    topologicalScreenOrder(mainScreens, mainScreenIds).forEach((screen) => {
         const predecessorIds = predecessorsByScreenId.get(screen.id) ?? [];
         const incomingFields = unionFieldsByKey(predecessorIds.map((id) => outgoingFieldsByScreenId.get(id) ?? []));
         const ownFields = screenOwnFields(screen, buildFormChildren(screen.items, screen.id, itemInfoMap));

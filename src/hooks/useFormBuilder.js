@@ -3,7 +3,9 @@ import { isSortable } from '@dnd-kit/react/sortable'
 import nodeDefinitions from '../data/nodeDefinitions'
 import { slugify } from '../utils/slugify'
 import { collectLinkedScreenIds, LINKED_SCREEN_ALLOWED_TYPES } from '../utils/linkedScreens'
+import { COMPLETE_TARGET } from '../utils/footerTarget'
 import { navMenuDropRestriction } from '../utils/navMenu'
+import { pruneUnavailableVisibilityConditions } from '../utils/visibilitySources'
 import { loadPersistedState, savePersistedState } from '../utils/storage'
 
 // Read once up front: both initial state values below derive from the same stored snapshot.
@@ -75,6 +77,21 @@ const createScreenId = () => `screen_${randomLetters(10)}`;
 
 const createScreen = (name) => ({ id: createScreenId(), name, items: [], footerLabel: null });
 
+// A footer target equal to "the next main screen" (or "Finalizar" on the last one) is just the sequential default,
+// which is how imported flows store it. Such targets are reset to implicit so they follow the new order; targets
+// that deliberately point elsewhere (e.g. a skip ahead) are left alone.
+export const followNewOrder = (oldScreens, newScreens) => {
+    const linkedIds = collectLinkedScreenIds(oldScreens);
+    const oldMain = oldScreens.filter((screen) => !linkedIds.has(screen.id));
+    const wasSequential = new Map(oldMain.map((screen, index) => {
+        const sequentialTarget = oldMain[index + 1]?.id ?? COMPLETE_TARGET;
+        return [screen.id, screen.footerTarget === sequentialTarget];
+    }));
+    return newScreens.map((screen) => (
+        wasSequential.get(screen.id) ? { ...screen, footerTarget: undefined } : screen
+    ));
+};
+
 export const useFormBuilder = () => {
     const [screens, setScreens] = useState(() => persistedState?.screens ?? []);
     const [activeScreenId, setActiveScreenId] = useState(() => persistedState?.activeScreenId ?? null);
@@ -114,6 +131,20 @@ export const useFormBuilder = () => {
         setActiveScreenId((currentActiveId) => (
             currentActiveId === screenId ? (remainingScreens[0]?.id ?? null) : currentActiveId
         ));
+    };
+
+    // Moves a screen one slot up (-1) or down (+1). Order drives the entry screen, each footer's sequential
+    // "next" target, and which earlier screens' answers a Visibility condition may read. Sequential footer
+    // targets follow the new order; deliberate targets and Jump/Nav Menu targets are stored by id and untouched.
+    const moveScreen = (screenId, direction) => {
+        setScreens((currentScreens) => {
+            const index = currentScreens.findIndex((screen) => screen.id === screenId);
+            const targetIndex = index + direction;
+            if (index === -1 || targetIndex < 0 || targetIndex >= currentScreens.length) return currentScreens;
+            const reordered = [...currentScreens];
+            [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+            return pruneUnavailableVisibilityConditions(followNewOrder(currentScreens, reordered));
+        });
     };
 
     const selectScreen = (screenId) => setActiveScreenId(screenId);
@@ -292,6 +323,7 @@ export const useFormBuilder = () => {
         items,
         addScreen,
         removeScreen,
+        moveScreen,
         selectScreen,
         renameScreen,
         setFooterLabel,
