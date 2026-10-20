@@ -16,7 +16,7 @@
     align-items: center;
     justify-content: space-between;
     position: sticky;
-    top: 8px;
+    top: 0px;
     z-index: 1;
     padding: 0 12px;
     margin-bottom: 8px;
@@ -35,15 +35,42 @@
     font-weight: 600;
     user-select: none;
     cursor: pointer;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.screen-lock-required-text {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .screen-lock-required input {
     margin: 0;
+    flex-shrink: 0;
     accent-color: var(--color-primary);
     cursor: pointer;
 }
 
+.screen-toolbar-name {
+    min-width: 0;
+    margin: 0 10px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill, 999px);
+    background-color: var(--color-border);
+    color: var(--color-text, #333);
+    font-size: 12px;
+    font-weight: 600;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .screen-node-counter {
+    flex-shrink: 0;
+    white-space: nowrap;
     padding: 2px 8px;
     border-radius: var(--radius-pill, 999px);
     background-color: var(--color-border);
