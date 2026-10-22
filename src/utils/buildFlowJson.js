@@ -1,6 +1,6 @@
 import nodeDefinitions, { MAX_JUMP_CONDITIONS } from '../data/nodeDefinitions'
 import { collectLinkedScreenIds } from './linkedScreens'
-import { hasMarkdown } from './markdownShortcuts'
+import { textProps } from './markdownShortcuts'
 import { resolveFooterTarget } from './footerTarget'
 import { migrateOptionIds } from './migrateOptionIds'
 import { NAV_MENU_TYPE, NAV_MENU_WA_TYPE, navMenuItemIds } from './navMenu'
@@ -103,7 +103,7 @@ const wrapWithVisibility = (nodes, conditions, currentScreenId, itemInfoMap) => 
 // A user-provided config.id overrides the auto-generated item.name as the payload/form field key.
 // config.topText is rendered as a standalone TextBody right above the node, never shown in the designer's form.
 const buildTopTextNode = (topText) => (
-    hasMarkdown(topText) ? { type: 'TextBody', markdown: true, text: [topText] } : { type: 'TextBody', text: topText }
+    { type: 'TextBody', ...textProps(topText) }
 );
 
 const buildFormChildren = (items, currentScreenId, itemInfoMap) => items

@@ -58,8 +58,8 @@ const shortAnswerInputTypeFrom = (waInputType, pattern) => {
     return waInputType ?? 'text';
 };
 
-// TextBody's text is a plain string, unless the source had markdown (then it's a single-entry array).
-const textOf = (node) => (Array.isArray(node.text) ? node.text[0] ?? '' : node.text ?? '');
+// TextBody's text is a plain string, unless the source had markdown (then it's an array of lines).
+const textOf = (node) => (Array.isArray(node.text) ? node.text.join('\n') : node.text ?? '');
 
 // Builds this item's editable config from its WhatsApp Flow node; returns null when the type is unsupported.
 const configFromNode = (internalType, node) => {

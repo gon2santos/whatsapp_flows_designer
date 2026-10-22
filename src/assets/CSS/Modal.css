@@ -117,6 +117,32 @@
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.markdown-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.config-panel .markdown-toolbar button {
+    padding: 3px 8px;
+    font: inherit;
+    font-size: 0.85em;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.config-panel .markdown-toolbar button:hover {
+    border-color: var(--color-primary);
+}
+
+.config-panel .markdown-toolbar + textarea {
+    margin-top: 4px;
+}
+
 .config-panel input[type="text"]:focus,
 .config-panel textarea:focus,
 .config-panel select:focus {
