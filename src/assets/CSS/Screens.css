@@ -7,6 +7,8 @@
 
 .screens-tabs-slot {
     width: 44px;
+    padding-right: 16px;
+    box-sizing: content-box;
     flex-shrink: 0;
     transition: width var(--transition-fast);
 }
@@ -34,7 +36,7 @@
     border-radius: var(--radius-sm);
 }
 
-.screens-tabs:hover {
+.screens-tabs-slot:hover .screens-tabs {
     overflow-y: auto;
 }
 
@@ -45,11 +47,11 @@
     padding: 4px 0;
 }
 
-.screens-tabs:hover .screens-tabs-icon {
+.screens-tabs-slot:hover .screens-tabs .screens-tabs-icon {
     display: none;
 }
 
-.screens-tabs:not(:hover) > :not(.screens-tabs-icon) {
+.screens-tabs-slot:not(:hover) .screens-tabs > :not(.screens-tabs-icon) {
     display: none;
 }
 
