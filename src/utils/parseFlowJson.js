@@ -138,7 +138,14 @@ const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => 
     if (!ownConditions.length) return { nodes, visibilityConditions: [] };
 
     const thenResult = unwrapVisibility(ifNode.then, screenId, nameToItemId, payloadKeyToItemId);
-    const conditions = [...ownConditions, ...thenResult.visibilityConditions];
+    const thenConditions = thenResult.visibilityConditions;
+    // A hoisted shared condition ANDed with an inner OR chain must be re-grouped: "A and (B or C)".
+    if (thenConditions.some((condition, index) => index > 0 && condition.logicalOperator === 'or')) {
+        thenConditions[0].open = (thenConditions[0].open ?? 0) + 1;
+        const last = thenConditions[thenConditions.length - 1];
+        last.close = (last.close ?? 0) + 1;
+    }
+    const conditions = [...ownConditions, ...thenConditions];
 
     if (ifNode.else) {
         const elseResult = unwrapVisibility(ifNode.else, screenId, nameToItemId, payloadKeyToItemId);

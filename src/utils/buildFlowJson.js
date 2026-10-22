@@ -36,7 +36,12 @@ const buildItemInfoMap = (screens) => {
         screen.items.forEach((item) => {
             if (item.isPreview) return;
             const fieldName = item.config?.id || item.name;
-            itemInfoMap.set(item.id, { screenId: screen.id, fieldName, payloadKey: payloadKey(screen.name, fieldName) });
+            itemInfoMap.set(item.id, {
+                screenId: screen.id,
+                fieldName,
+                screenName: screen.name,
+                conditions: item.config?.visibilityConditions,
+            });
         });
     });
     return itemInfoMap;
@@ -49,18 +54,60 @@ const buildItemInfoMap = (screens) => {
 // same condition string (reports a false "type mismatch"), so AND/OR are instead expressed structurally via
 // nested "If" components: AND nests through "then", OR chains through "else" (duplicating the guarded nodes
 // in every leaf), matching exactly how a single-condition "If" has always worked.
+// A condition's "suffix" (e.g. "_or2") targets the renamed copy of a source field that was duplicated by an OR.
 const buildConditionClause = (condition, currentScreenId, itemInfoMap) => {
     const info = itemInfoMap.get(condition.nodeId);
-    const reference = info.screenId === currentScreenId ? `\${form.${info.fieldName}}` : `\${data.${info.payloadKey}}`;
+    const fieldName = `${info.fieldName}${condition.suffix ?? ''}`;
+    const reference = info.screenId === currentScreenId ? `\${form.${fieldName}}` : `\${data.${payloadKey(info.screenName, fieldName)}}`;
     return `${reference} ${condition.operator === 'not-equals' ? '!=' : '=='} '${condition.optionId}'`;
 };
 
-// Splits a flat condition list into AND-groups, starting a new group at each "or"-related condition.
-const groupConditionsByOr = (conditions) => conditions.reduce((groups, condition) => {
-    if (!groups.length || condition.logicalOperator === 'or') groups.push([condition]);
-    else groups[groups.length - 1].push(condition);
-    return groups;
-}, []);
+// Expands the conditions (with their "("/")" grouping via condition.open/close and AND/OR via logicalOperator)
+// into OR'd AND-groups (disjunctive normal form), since only nested "If"s can be emitted. AND binds tighter than OR.
+const groupConditionsByOr = (conditions, expand = (condition) => [[condition]]) => {
+    const tokens = [];
+    let depth = 0;
+    conditions.forEach((condition, index) => {
+        if (index > 0) tokens.push(condition.logicalOperator === 'or' ? 'or' : 'and');
+        for (let i = 0; i < (condition.open ?? 0); i += 1) { tokens.push('('); depth += 1; }
+        tokens.push(condition);
+        const closes = Math.min(condition.close ?? 0, depth);
+        for (let i = 0; i < closes; i += 1) tokens.push(')');
+        depth -= closes;
+    });
+    for (; depth > 0; depth -= 1) tokens.push(')');
+
+    let pos = 0;
+    const parseFactor = () => {
+        if (tokens[pos] === '(') {
+            pos += 1;
+            const inner = parseOr();
+            pos += 1;
+            return inner;
+        }
+        const condition = tokens[pos];
+        pos += 1;
+        return expand(condition);
+    };
+    const parseAnd = () => {
+        let result = parseFactor();
+        while (tokens[pos] === 'and') {
+            pos += 1;
+            const next = parseFactor();
+            result = result.flatMap((left) => next.map((right) => [...left, ...right]));
+        }
+        return result;
+    };
+    function parseOr() {
+        let result = parseAnd();
+        while (tokens[pos] === 'or') {
+            pos += 1;
+            result = [...result, ...parseAnd()];
+        }
+        return result;
+    }
+    return tokens.length ? parseOr() : [];
+};
 
 // Nests one "If" per condition in the group (AND), innermost first, guarding the same "then" content throughout.
 const nestConditionsAsAnd = (conditions, nodes, currentScreenId, itemInfoMap) => conditions.reduceRight((children, condition) => [{
@@ -84,18 +131,70 @@ const renameNamedNodes = (nodes, suffix) => nodes.map((node) => {
 
 // Chains each AND-group's outermost "If" into the next group's via "else" (OR). The last group has no
 // "else", so nothing renders when none of the OR'd groups match.
-const nestGroupsAsOr = (groups, nodes, currentScreenId, itemInfoMap) => groups.reduceRight((elseBranch, group, index) => {
-    const branchNodes = index === 0 ? nodes : renameNamedNodes(nodes, `or${index + 1}`);
-    const built = nestConditionsAsAnd(group, branchNodes, currentScreenId, itemInfoMap);
-    return elseBranch ? [{ ...built[0], else: elseBranch }] : built;
-}, null);
+// When the groups can never hold at once (e.g. tipo == A vs tipo == B) they are emitted as flat sibling Ifs
+// instead: WhatsApp Flow's 3-level If limit counts every "else" link, so chains plus inner Ifs overflow it.
+const groupsAreExclusive = (groups) => groups.every((group, i) => groups.every((other, j) => (
+    j <= i || group.some((a) => other.some((b) => contradicts(a, b)))
+)));
+
+const nestGroupsAsOr = (groups, nodes, currentScreenId, itemInfoMap) => {
+    const branchNodesFor = (index) => (index === 0 ? nodes : renameNamedNodes(nodes, `or${index + 1}`));
+    if (groups.length > 1 && groupsAreExclusive(groups)) {
+        return groups.flatMap((group, index) => nestConditionsAsAnd(group, branchNodesFor(index), currentScreenId, itemInfoMap));
+    }
+    return groups.reduceRight((elseBranch, group, index) => {
+        const built = nestConditionsAsAnd(group, branchNodesFor(index), currentScreenId, itemInfoMap);
+        return elseBranch ? [{ ...built[0], else: elseBranch }] : built;
+    }, null);
+};
+
+const conditionKey = (condition) => `${condition.nodeId}|${condition.suffix ?? ''}|${condition.operator}|${condition.optionId}`;
+
+const contradicts = (a, b) => a.nodeId === b.nodeId && (a.suffix ?? '') === (b.suffix ?? '')
+    && (a.operator === b.operator ? a.operator === 'equals' && a.optionId !== b.optionId : a.optionId === b.optionId);
+
+// Drops AND-groups that can never hold (e.g. tipo == A and tipo == B) and repeated conditions inside a group.
+const normalizeGroups = (groups) => groups
+    .filter((group) => !group.some((a, i) => group.some((b, j) => j > i && contradicts(a, b))))
+    .map((group) => group.filter((condition, i) => group.findIndex((other) => conditionKey(other) === conditionKey(condition)) === i));
+
+// Resolves a node's Visibility into hoisted "shared" conditions plus OR'd "innerGroups" (one named copy each).
+// A condition on a source field that was itself duplicated by an OR is expanded into one clause per copy, each
+// paired with the conditions that make that copy visible, since only the visible copy ever holds a value.
+// Shared conditions are hoisted because WhatsApp Flow caps If nesting at 3 levels and each "else" level counts.
+const planVisibility = (conditions, itemInfoMap, stack = []) => {
+    const validConditions = (conditions ?? []).filter((condition) => condition.nodeId && condition.optionId && itemInfoMap.has(condition.nodeId));
+    if (!validConditions.length) return null;
+
+    const expand = (condition) => {
+        const plain = [[{ ...condition, suffix: '' }]];
+        if (stack.includes(condition.nodeId)) return plain;
+        const sourcePlan = planVisibility(itemInfoMap.get(condition.nodeId).conditions, itemInfoMap, [...stack, condition.nodeId]);
+        if (!sourcePlan || sourcePlan.innerGroups.length < 2) return plain;
+        return sourcePlan.innerGroups.map((inner, index) => [
+            ...sourcePlan.shared,
+            ...inner,
+            { ...condition, suffix: index ? `_or${index + 1}` : '' },
+        ]);
+    };
+
+    const groups = normalizeGroups(groupConditionsByOr(validConditions, expand));
+    if (!groups.length) return { shared: [], innerGroups: [] };
+    const isShared = (condition) => groups.every((group) => group.some((other) => conditionKey(other) === conditionKey(condition)));
+    const shared = groups[0].filter(isShared);
+    const remainders = groups.map((group) => group.filter((condition) => !shared.some((other) => conditionKey(other) === conditionKey(condition))));
+    // A branch left with nothing is always true once the shared part holds, so the other branches are redundant.
+    return { shared, innerGroups: remainders.some((group) => !group.length) ? [[]] : remainders };
+};
 
 // Wraps a node (or node + its Top text) with every Visibility condition. Takes/returns an array so a
 // Top text TextBody stays wrapped together with the field it belongs to.
 const wrapWithVisibility = (nodes, conditions, currentScreenId, itemInfoMap) => {
-    const validConditions = (conditions ?? []).filter((condition) => condition.nodeId && condition.optionId && itemInfoMap.has(condition.nodeId));
-    if (!validConditions.length) return nodes;
-    return nestGroupsAsOr(groupConditionsByOr(validConditions), nodes, currentScreenId, itemInfoMap);
+    const plan = planVisibility(conditions, itemInfoMap);
+    if (!plan) return nodes;
+    if (!plan.innerGroups.length) return [];
+    const inner = nestGroupsAsOr(plan.innerGroups, nodes, currentScreenId, itemInfoMap);
+    return nestConditionsAsAnd(plan.shared, inner, currentScreenId, itemInfoMap);
 };
 
 

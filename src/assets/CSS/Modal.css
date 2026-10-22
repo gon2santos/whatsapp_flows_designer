@@ -380,6 +380,24 @@
     border-color: var(--color-danger);
 }
 
+.config-condition-row .condition-paren-btn {
+    min-width: 32px;
+    padding: 6px 8px;
+    font-weight: 700;
+    color: var(--color-border);
+}
+
+.config-condition-row .condition-paren-btn:hover {
+    color: var(--color-primary-dark);
+    border-color: var(--color-primary);
+}
+
+.config-condition-row .condition-paren-btn.is-on {
+    color: var(--color-primary-dark);
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary);
+}
+
 .modal-button {
     cursor: pointer;
     background: none;

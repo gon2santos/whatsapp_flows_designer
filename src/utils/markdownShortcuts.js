@@ -23,8 +23,8 @@ export const handleMarkdownShortcut = (event, value, onValueChange) => {
 // Markdown is only relevant to WhatsApp Flow's JSON when the text actually contains formatting syntax.
 export const hasMarkdown = (text) => /\*|~~|\[[^\]]+\]\([^)]+\)|^\s*(-|\d+\.)\s/m.test(text ?? '');
 
-// WhatsApp Flow text props: markdown text is an array of lines plus "markdown": true, otherwise a plain string.
-export const textProps = (text) => (hasMarkdown(text) ? { markdown: true, text: text.split('\n') } : { text });
+// WhatsApp Flow text props: markdown text adds "markdown": true; lines stay joined by "\n" in a single string.
+export const textProps = (text) => (hasMarkdown(text) ? { markdown: true, text } : { text });
 
 const WRAP_MARKERS = { bold: '**', italic: '*', strikethrough: '~~' };
 

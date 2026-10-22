@@ -5,14 +5,18 @@ const emptyCondition = () => ({ nodeId: '', operator: 'equals', optionId: '', lo
 
 // Up to 3 "If [node] [equals|not equals] [option]" rules controlling whether this node renders, joined
 // pairwise by an AND/OR selector. Stored as config.visibilityConditions; each condition's logicalOperator
-// relates it to the PREVIOUS one (ignored on the first condition) and is combined into a single WhatsApp
-// Flow boolean expression (e.g. "a == 'x' && b == 'y' || c == 'z'"), not nested "If" components.
+// relates it to the PREVIOUS one (ignored on the first condition). condition.open/close count the "(" / ")"
+// placed before/after it, so "A and (B or C)" differs from "(A and B) or C". AND binds tighter than OR.
+const MAX_PARENS = 2;
+
 const VisibilityConditions = ({ config, onChange, sources }) => {
     const conditions = config.visibilityConditions ?? [];
 
     const updateCondition = (index, nextCondition) => {
         onChange({ ...config, visibilityConditions: conditions.map((condition, i) => (i === index ? nextCondition : condition)) });
     };
+
+    const cycleParen = (index, key) => updateCondition(index, { ...conditions[index], [key]: ((conditions[index][key] ?? 0) + 1) % (MAX_PARENS + 1) });
 
     const addCondition = () => onChange({ ...config, visibilityConditions: [...conditions, emptyCondition()] });
     const removeCondition = (index) => onChange({ ...config, visibilityConditions: conditions.filter((_, i) => i !== index) });
@@ -36,6 +40,14 @@ const VisibilityConditions = ({ config, onChange, sources }) => {
                         </div>
                     )}
                     <div className="config-condition-row">
+                        <button
+                            type="button"
+                            title="Open group (click to cycle)"
+                            className={`condition-paren-btn${condition.open ? ' is-on' : ''}`}
+                            onClick={() => cycleParen(index, 'open')}
+                        >
+                            {condition.open ? '('.repeat(condition.open) : '('}
+                        </button>
                         <span>If</span>
                         <select
                             value={condition.nodeId}
@@ -63,6 +75,14 @@ const VisibilityConditions = ({ config, onChange, sources }) => {
                                 <option key={option.id} value={option.id}>{option.title}</option>
                             ))}
                         </select>
+                        <button
+                            type="button"
+                            title="Close group (click to cycle)"
+                            className={`condition-paren-btn${condition.close ? ' is-on' : ''}`}
+                            onClick={() => cycleParen(index, 'close')}
+                        >
+                            {condition.close ? ')'.repeat(condition.close) : ')'}
+                        </button>
                         <button type="button" onClick={() => removeCondition(index)} aria-label="Remove condition">×</button>
                     </div>
                 </div>
