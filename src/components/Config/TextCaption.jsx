@@ -1,15 +1,15 @@
+import MarkdownTextarea from '../MarkdownTextarea';
+
 const TextCaption = ({ config, onChange }) => {
     return (
         <div className="config-panel">
-            <label>
-                Text
-                <input
-                    type="text"
-                    value={config.text ?? ''}
-                    onChange={(event) => onChange({ ...config, text: event.target.value })}
-                    placeholder="Caption text"
-                />
-            </label>
+            <MarkdownTextarea
+                label="Text"
+                rows={2}
+                value={config.text ?? ''}
+                onChange={(text) => onChange({ ...config, text })}
+                placeholder="Caption text"
+            />
         </div>
     );
 }

@@ -23,9 +23,11 @@ const FooterButton = ({ label, isTerminal, onLabelChange, mainScreens = [], acti
 
     return (
         <>
-            <button type="button" className="screen-footer-button" onDoubleClick={startEditing}>
-                {displayLabel}
-            </button>
+            <div className="screen-footer">
+                <button type="button" className="screen-footer-button" onDoubleClick={startEditing}>
+                    {displayLabel}
+                </button>
+            </div>
             {isEditing && (
                 <Modal title="Footer" onClose={() => setIsEditing(false)}>
                     <form className="config-panel" onSubmit={confirmEdit}>

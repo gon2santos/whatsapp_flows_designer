@@ -2,6 +2,7 @@ import DatePicker from '../components/Palette/DatePicker'
 import Dropdown from '../components/Palette/Dropdown'
 import ShortAnswer from '../components/Palette/ShortAnswer'
 import TextBody from '../components/Palette/TextBody'
+import { textProps } from '../utils/markdownShortcuts'
 import TextCaption from '../components/Palette/TextCaption'
 import LargeTextHeading from '../components/Palette/TextLargeHeading'
 import SmallTextHeading from '../components/Palette/TextSmallheading'
@@ -177,7 +178,7 @@ const nodeDefinitions = [
         Icon: TextCaption,
         ConfigComponent: TextCaptionConfig,
         defaultConfig: { text: '' },
-        toJson: (config) => ({ type: 'TextCaption', text: textField(config) }),
+        toJson: (config) => ({ type: 'TextCaption', ...textProps(textField(config)) }),
     },
     {
         type: 'text-body',
@@ -185,7 +186,7 @@ const nodeDefinitions = [
         Icon: TextBody,
         ConfigComponent: TextBodyConfig,
         defaultConfig: { text: '' },
-        toJson: (config) => ({ type: 'TextBody', text: textField(config) }),
+        toJson: (config) => ({ type: 'TextBody', ...textProps(textField(config)) }),
     },
     {
         type: 'text-small-heading',

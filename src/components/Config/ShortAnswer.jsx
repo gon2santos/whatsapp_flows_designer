@@ -1,4 +1,4 @@
-import { handleMarkdownShortcut } from '../../utils/markdownShortcuts'
+import MarkdownTextarea from '../MarkdownTextarea'
 
 const INPUT_TYPE_OPTIONS = [
     { value: 'text', label: 'Text' },
@@ -28,16 +28,12 @@ const ShortAnswer = ({ config, onChange }) => {
                     placeholder="e.g. What's your name?"
                 />
             </label>
-            <label>
-                Top text: <span className="label-optional">(optional)</span>
-                <textarea
-                    rows={3}
-                    value={config.topText ?? ''}
-                    onChange={(event) => onChange({ ...config, topText: event.target.value })}
-                    onKeyDown={(event) => handleMarkdownShortcut(event, config.topText ?? '', (topText) => onChange({ ...config, topText }))}
-                    placeholder="Text shown above this field"
-                />
-            </label>
+            <MarkdownTextarea
+                label={<>Top text: <span className="label-optional">(optional)</span></>}
+                value={config.topText ?? ''}
+                onChange={(topText) => onChange({ ...config, topText })}
+                placeholder="Text shown above this field"
+            />
             <label>
                 Type
                 <select
