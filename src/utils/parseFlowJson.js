@@ -55,6 +55,7 @@ const fromDataSource = (dataSource) => {
 // Reverse of nodeDefinitions' SHORT_ANSWER_WA_INPUT_TYPE/SHORT_ANSWER_PATTERN mapping.
 const shortAnswerInputTypeFrom = (waInputType, pattern) => {
     if (pattern === '^[0-9]+$') return waInputType === 'password' ? 'passcode' : 'number';
+    if (pattern && (waInputType ?? 'text') === 'text') return 'regex';
     return waInputType ?? 'text';
 };
 
@@ -69,6 +70,7 @@ const configFromNode = (internalType, node) => {
                 label: node.label ?? '', required: !!node.required,
                 inputType: shortAnswerInputTypeFrom(node['input-type'], node.pattern),
                 helperText: node['helper-text'] ?? '',
+                ...(node.pattern && node.pattern !== '^[0-9]+$' ? { regex: node.pattern } : {}),
             };
         case 'paragraph-answer':
         case 'date-picker':
