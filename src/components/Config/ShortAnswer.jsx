@@ -7,7 +7,17 @@ const INPUT_TYPE_OPTIONS = [
     { value: 'number', label: 'Number' },
     { value: 'passcode', label: 'Passcode' },
     { value: 'phone', label: 'Phone' },
+    { value: 'regex', label: 'Regex' },
 ];
+
+const isValidRegex = (source) => {
+    try {
+        new RegExp(source);
+        return true;
+    } catch {
+        return false;
+    }
+};
 
 const INSTRUCTIONS_MAX_LENGTH = 80;
 const LABEL_MAX_LENGTH = 20;
@@ -45,6 +55,22 @@ const ShortAnswer = ({ config, onChange }) => {
                     ))}
                 </select>
             </label>
+            {config.inputType === 'regex' && (
+                <>
+                    <label>
+                        Regular expression
+                        <input
+                            type="text"
+                            value={config.regex ?? ''}
+                            onChange={(event) => onChange({ ...config, regex: event.target.value })}
+                            placeholder="e.g. ^[A-Z]{3}[0-9]+$"
+                        />
+                    </label>
+                    {!isValidRegex(config.regex ?? '') && (
+                        <p className="config-field-error">Invalid regular expression</p>
+                    )}
+                </>
+            )}
             <label>
                 Instructions
                 <input

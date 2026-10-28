@@ -65,7 +65,7 @@ const SHORT_ANSWER_HELPER_TEXT = {
 };
 
 // WhatsApp Flow has no "number"/"passcode" input-type: both render as "text"/"password" with a digits-only pattern.
-const SHORT_ANSWER_WA_INPUT_TYPE = { number: 'text', passcode: 'password' };
+const SHORT_ANSWER_WA_INPUT_TYPE = { number: 'text', passcode: 'password', regex: 'text' };
 const SHORT_ANSWER_PATTERN = { number: '^[0-9]+$', passcode: '^[0-9]+$' };
 
 
@@ -81,7 +81,7 @@ const nodeDefinitions = [
         defaultConfig: { label: '', required: false, inputType: 'text' },
         toJson: (config, { name }) => {
             const inputType = config.inputType || 'text';
-            const pattern = SHORT_ANSWER_PATTERN[inputType];
+            const pattern = inputType === 'regex' ? config.regex : SHORT_ANSWER_PATTERN[inputType];
             return {
                 type: 'TextInput', 'input-type': SHORT_ANSWER_WA_INPUT_TYPE[inputType] ?? inputType, label: labelField(config), name, required: !!config.required,
                 'helper-text': config.helperText || SHORT_ANSWER_HELPER_TEXT[inputType] || SHORT_ANSWER_HELPER_TEXT.text,
