@@ -57,7 +57,7 @@ const JumpToScreen = ({ config, onChange, screens = [], activeScreenId }) => {
                 </div>
             ))}
             <button type="button" onClick={addJump} disabled={!canAddMore}>Add condition</button>
-            {displayJumps.length >= MAX_JUMP_CONDITIONS && <small>Maximum of {MAX_JUMP_CONDITIONS} conditions (WhatsApp Flow limits nested If components).</small>}
+            {displayJumps.length >= MAX_JUMP_CONDITIONS && <small>Maximo de {MAX_JUMP_CONDITIONS} condiciones permitidas.</small>}
         </div>
     );
 }
