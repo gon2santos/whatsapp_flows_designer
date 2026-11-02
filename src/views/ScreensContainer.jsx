@@ -122,6 +122,7 @@ const ScreensContainer = ({ screens, activeScreenId, items, onAddScreen, onRemov
                         onPruneLinkedScreen={onPruneLinkedScreen}
                         isTerminal={isActiveScreenTerminal}
                         isLinked={isActiveScreenLinked}
+                        onRename={() => activeScreen && startRenaming(activeScreen)}
                         footerLabel={activeScreen?.footerLabel}
                         onFooterLabelChange={(label) => onFooterLabelChange(activeScreenId, label)}
                         mainScreens={mainScreens}

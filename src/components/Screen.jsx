@@ -5,7 +5,7 @@ import FormItemPreview from '../views/FormItemPreview'
 import FooterButton from '../views/FooterButton'
 import { MAX_NODES_PER_SCREEN, countNodeSlots } from '../hooks/useFormBuilder'
 
-const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, footerLabel, onFooterLabelChange, mainScreens, activeScreenIndex, footerTarget, onFooterTargetChange, lockRequired, onToggleLockRequired }) => {
+const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedScreen, isTerminal, isLinked, onRename, footerLabel, onFooterLabelChange, mainScreens, activeScreenIndex, footerTarget, onFooterTargetChange, lockRequired, onToggleLockRequired }) => {
     const { ref } = useDroppable({ id: 'screen-drop-zone' });
     const nodeCount = countNodeSlots(items.filter((item) => !item.isPreview));
     // A Nav Menu navigates through its own items, so its screen has no Footer.
@@ -24,7 +24,7 @@ const Screen = ({ items, onConfigChange, screens, activeScreenId, onPruneLinkedS
                     />
                     <span className="screen-lock-required-text">Lock required</span>
                 </label>
-                <div className="screen-toolbar-name" title={activeScreenName}>{activeScreenName}</div>
+                <div className="screen-toolbar-name" title={activeScreenName} onClick={onRename}>{activeScreenName}</div>
                 <div className={`screen-node-counter${isAtLimit ? ' screen-node-counter--limit' : ''}`}>
                     {nodeCount}/{MAX_NODES_PER_SCREEN}
                 </div>

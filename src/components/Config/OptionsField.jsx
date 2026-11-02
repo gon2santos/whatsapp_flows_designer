@@ -66,14 +66,6 @@ const OptionsField = ({ config, onChange, addLabel, labelMaxLength }) => {
                 ))}
             </div>
             <button type="button" onClick={addOption}>{addLabel}</button>
-            <label className="config-checkbox">
-                <input
-                    type="checkbox"
-                    checked={!!config.required}
-                    onChange={(event) => onChange({ ...config, required: event.target.checked })}
-                />
-                Required
-            </label>
         </div>
     );
 }

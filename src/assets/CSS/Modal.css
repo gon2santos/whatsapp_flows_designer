@@ -52,6 +52,17 @@
     margin-bottom: 18px;
 }
 
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.modal-title .config-checkbox {
+    margin: 0;
+    font-size: 14px;
+}
+
 .modal-header h2 {
     margin: 0;
     font-size: 18px;

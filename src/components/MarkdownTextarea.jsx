@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { applyMarkdownAction, handleMarkdownShortcut } from '../utils/markdownShortcuts';
 
 const ACTIONS = [
@@ -14,6 +14,14 @@ const ACTIONS = [
 const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => {
     const textareaRef = useRef(null);
 
+    // The default size becomes the floor for manual resizing.
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        textarea.style.minHeight = `${textarea.offsetHeight}px`;
+        textarea.style.minWidth = `${textarea.offsetWidth}px`;
+    }, []);
+
     const runAction = (action) => {
         const textarea = textareaRef.current;
         if (!textarea) return;
@@ -25,8 +33,15 @@ const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => 
         });
     };
 
+    // The toolbar buttons sit inside the label, so a click on the label text would otherwise activate the first button (Bold).
+    const handleLabelClick = (event) => {
+        if (event.target.closest('button, textarea')) return;
+        event.preventDefault();
+        textareaRef.current?.focus();
+    };
+
     return (
-        <label>
+        <label onClick={handleLabelClick}>
             {label}
             <div className="markdown-toolbar">
                 {ACTIONS.map(({ action, label: text, title, style }) => (
