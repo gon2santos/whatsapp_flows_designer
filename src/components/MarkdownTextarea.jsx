@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { applyMarkdownAction, handleMarkdownShortcut } from '../utils/markdownShortcuts';
 
 const ACTIONS = [
@@ -13,6 +13,14 @@ const ACTIONS = [
 // Label + markdown formatting toolbar + textarea, writing the syntax straight into the value.
 const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => {
     const textareaRef = useRef(null);
+
+    // The default size becomes the floor for manual resizing.
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        textarea.style.minHeight = `${textarea.offsetHeight}px`;
+        textarea.style.minWidth = `${textarea.offsetWidth}px`;
+    }, []);
 
     const runAction = (action) => {
         const textarea = textareaRef.current;
