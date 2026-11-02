@@ -33,8 +33,15 @@ const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => 
         });
     };
 
+    // The toolbar buttons sit inside the label, so a click on the label text would otherwise activate the first button (Bold).
+    const handleLabelClick = (event) => {
+        if (event.target.closest('button, textarea')) return;
+        event.preventDefault();
+        textareaRef.current?.focus();
+    };
+
     return (
-        <label>
+        <label onClick={handleLabelClick}>
             {label}
             <div className="markdown-toolbar">
                 {ACTIONS.map(({ action, label: text, title, style }) => (
