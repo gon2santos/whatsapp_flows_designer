@@ -44,14 +44,6 @@ const OptIn = ({ config, onChange, screens = [], activeScreenId, onPruneLinkedSc
                     placeholder="e.g. I agree to the terms"
                 />
             </label>
-            <label className="config-checkbox">
-                <input
-                    type="checkbox"
-                    checked={!!config.required}
-                    onChange={(event) => onChange({ ...config, required: event.target.checked })}
-                />
-                Required
-            </label>
 
             {linkedScreen ? (
                 <>

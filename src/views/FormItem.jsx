@@ -48,7 +48,20 @@ const FormItem = ({ id, index, type, title, name, config, onConfigChange, screen
                 {definition && <definition.Icon />}
             </Node>
             {isConfigOpen && (
-                <Modal title={title} onClose={() => setIsConfigOpen(false)}>
+                <Modal
+                    title={title}
+                    onClose={() => setIsConfigOpen(false)}
+                    headerExtra={definition && 'required' in definition.defaultConfig && (
+                        <label className="config-checkbox">
+                            <input
+                                type="checkbox"
+                                checked={!!currentConfig.required}
+                                onChange={(event) => onConfigChange(id, { ...currentConfig, required: event.target.checked })}
+                            />
+                            Required
+                        </label>
+                    )}
+                >
                     {!TYPES_WITHOUT_ID.includes(type) && (
                         <div className="config-panel">
                             <label>

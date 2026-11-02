@@ -35,14 +35,6 @@ const DatePicker = ({ config, onChange }) => {
                     placeholder="e.g. Please enter the requested details"
                 />
             </label>
-            <label className="config-checkbox">
-                <input
-                    type="checkbox"
-                    checked={!!config.required}
-                    onChange={(event) => onChange({ ...config, required: event.target.checked })}
-                />
-                Required
-            </label>
         </div>
     );
 }
