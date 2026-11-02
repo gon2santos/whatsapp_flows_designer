@@ -29,6 +29,12 @@ const OPTIN_TYPE = 'opt-in';
 const OPTIN_LIMIT_MESSAGE = `No se pueden agregar más de ${MAX_OPTIN_PER_SCREEN} nodos OptIn en una misma pantalla.`;
 const countOptInNodes = (items) => items.filter((item) => item.type === OPTIN_TYPE).length;
 
+// WhatsApp Flow screens can't hold more than 3 Image nodes.
+const MAX_IMAGE_PER_SCREEN = 3;
+const IMAGE_TYPE = 'image';
+const IMAGE_LIMIT_MESSAGE = `No se pueden agregar más de ${MAX_IMAGE_PER_SCREEN} nodos Image en una misma pantalla.`;
+const countImageNodes = (items) => items.filter((item) => item.type === IMAGE_TYPE).length;
+
 // Builds a real node from a committed preview: stable field name + the type's default editable config.
 // When lockRequired is on, any type that has a "required" toggle starts out checked.
 const createNodeFromPreview = (preview, lockRequired) => {
@@ -211,6 +217,8 @@ export const useFormBuilder = () => {
             // Same for the OptIn-specific cap: no point previewing a 6th OptIn node.
             if (draggedType === OPTIN_TYPE && countOptInNodes(withoutPreview) >= MAX_OPTIN_PER_SCREEN) return withoutPreview;
 
+            if (draggedType === IMAGE_TYPE && countImageNodes(withoutPreview) >= MAX_IMAGE_PER_SCREEN) return withoutPreview;
+
             // Same for Nav Menu exclusivity: it can't share a screen with other nodes.
             if (navMenuDropRestriction(withoutPreview, draggedType)) return withoutPreview;
 
@@ -282,14 +290,16 @@ export const useFormBuilder = () => {
             const realItemCount = countNodeSlots(screenItems);
             const hasRoom = realItemCount < MAX_NODES_PER_SCREEN;
             const isOptInAllowed = draggedType !== OPTIN_TYPE || countOptInNodes(screenItems) < MAX_OPTIN_PER_SCREEN;
+            const isImageAllowed = draggedType !== IMAGE_TYPE || countImageNodes(screenItems) < MAX_IMAGE_PER_SCREEN;
             const navMenuMessage = navMenuDropRestriction(screenItems, draggedType);
             const isNavMenuAllowed = !navMenuMessage;
             if (shouldCommit && !isTypeAllowed) setRestrictedDropMessage(LINKED_SCREEN_RESTRICTION_MESSAGE);
             else if (shouldCommit && !isNavMenuAllowed) setRestrictedDropMessage(navMenuMessage);
             else if (shouldCommit && !isOptInAllowed) setRestrictedDropMessage(OPTIN_LIMIT_MESSAGE);
+            else if (shouldCommit && !isImageAllowed) setRestrictedDropMessage(IMAGE_LIMIT_MESSAGE);
 
             updateActiveScreenItems((currentItems) => (
-                shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed && isNavMenuAllowed
+                shouldCommit && isTypeAllowed && hasRoom && isOptInAllowed && isImageAllowed && isNavMenuAllowed
                     ? currentItems.map((item) => (
                         item.id === PREVIEW_ID ? createItemFromPreview(item, lockRequired) : item
                     ))
