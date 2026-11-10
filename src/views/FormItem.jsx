@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/react/sortable'
 import { Feedback } from '@dnd-kit/dom'
 import { closestCenter } from '@dnd-kit/collision'
 import Node from './Node'
+import FormItemDetails from './FormItemDetails'
 import Modal from '../components/Modal'
 import VisibilityConditions from '../components/Config/VisibilityConditions'
 import nodeDefinitions from '../data/nodeDefinitions'
@@ -21,14 +22,15 @@ const TYPES_WITHOUT_ID = ['text-caption', 'text-body', 'text-small-heading', 'te
 // closestCenter avoids the tiny/erratic hit zones of pure shape-overlap detection.
 const FormItem = ({ id, index, type, title, name, config, onConfigChange, screens, activeScreenId, onPruneLinkedScreen }) => {
     const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
     const isAltHeld = useAltKeyHeld();
     const currentConfig = config ?? {};
     const isDuplicateId = hasDuplicateFieldName(screens, id, effectiveFieldName({ id, name, config: currentConfig }));
 
     // Normal reordering is disabled while Alt is held; a parallel clone-feedback draggable takes over instead,
     // leaving the original node untouched and dragging a copy (same data, fresh id/name) to wherever it's dropped.
-    const { ref: sortableRef } = useSortable({ id, index, group: 'form', collisionDetector: closestCenter, disabled: isAltHeld });
-    const { ref: cloneRef } = useDraggable({
+    const { ref: sortableRef, isDragging: isSortDragging } = useSortable({ id, index, group: 'form', collisionDetector: closestCenter, disabled: isAltHeld });
+    const { ref: cloneRef, isDragging: isCloneDragging } = useDraggable({
         id: `clone-${id}`,
         data: { cloneSource: { type, title, config: currentConfig } },
         disabled: !isAltHeld,
@@ -39,12 +41,26 @@ const FormItem = ({ id, index, type, title, name, config, onConfigChange, screen
     const definition = nodeDefinitions.find((item) => item.type === type);
     const ConfigPanel = definition?.ConfigComponent;
     const visibilitySources = collectVisibilitySources(screens, activeScreenId, index);
-    // Purely cosmetic: the node card shows the entered label/text (first 50 chars) instead of the generic type name.
-    const displayTitle = (currentConfig.label || currentConfig.text || '').slice(0, 50) || title;
+    // Cosmetic: the card shows the node's id (first 20 chars); types without an id show their text, falling back to the type name.
+    const cardLabel = TYPES_WITHOUT_ID.includes(type)
+        ? (currentConfig.text || currentConfig.label || '')
+        : effectiveFieldName({ id, name, config: currentConfig });
+    const displayTitle = (cardLabel || '').slice(0, 20) || title;
+
+    // Stays expanded for the whole drag so the preview travels with the node.
+    const isExpanded = (isHovered || isSortDragging || isCloneDragging) && !isConfigOpen;
 
     return (
         <>
-            <Node ref={setRefs} title={displayTitle} data-node-id={id} onDoubleClick={() => setIsConfigOpen(true)}>
+            <Node
+                ref={setRefs}
+                title={displayTitle}
+                data-node-id={id}
+                details={isExpanded ? <FormItemDetails config={currentConfig} /> : null}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onDoubleClick={() => setIsConfigOpen(true)}
+            >
                 {definition && <definition.Icon />}
             </Node>
             {isConfigOpen && (
