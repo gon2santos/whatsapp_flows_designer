@@ -75,7 +75,16 @@ const configFromNode = (internalType, node) => {
         case 'paragraph-answer':
         case 'date-picker':
             return { label: node.label ?? '', required: !!node.required, helperText: node['helper-text'] ?? '' };
-        case 'dropdown':
+        case 'dropdown': {
+            const dataSource = Array.isArray(node['data-source']) ? node['data-source'] : [];
+            const isDummy = fromDataSource(dataSource).every((title) => title === '');
+            const optionDetails = isDummy ? [] : dataSource.map((entry) => ({
+                description: entry?.description ?? '', metadata: entry?.metadata ?? '',
+                image: entry?.image ?? '', imageMimeType: entry?.image ? 'image/png' : '',
+            }));
+            const advanced = optionDetails.some((detail) => detail.description || detail.metadata || detail.image);
+            return { label: node.label ?? '', required: !!node.required, options: fromDataSource(dataSource), advanced, optionDetails };
+        }
         case 'multiple-choice':
         case 'radio':
             return { label: node.label ?? '', required: !!node.required, options: fromDataSource(node['data-source']) };

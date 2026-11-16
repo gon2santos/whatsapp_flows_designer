@@ -34,19 +34,27 @@ export const MAX_JUMP_CONDITIONS = 3;
 
 // Turns the option list from OptionsField into WhatsApp Flow's "data-source" entries. Ids are exactly the
 // option title (duplicates get a "_2" suffix). Falls back to a single dummy "option" entry when the user hasn't typed one yet,
-// since WhatsApp Flow requires a non-empty data-source.
-export const toDataSource = (options = []) => {
+// since WhatsApp Flow requires a non-empty data-source. details (Dropdown advanced mode) is index-aligned with options and
+// adds each option's description/metadata/image.
+export const toDataSource = (options = [], details) => {
     const usedIds = new Set();
     const dataSource = options
-        .map((option) => option.trim())
-        .filter(Boolean)
-        .map((option) => {
-            const base = option.replace(/"/g, '');
+        .map((option, index) => ({ title: option.trim(), detail: details?.[index] }))
+        .filter(({ title }) => title)
+        .map(({ title, detail }) => {
+            const base = title.replace(/"/g, '');
             let id = base;
             let suffix = 2;
             while (usedIds.has(id)) { id = `${base}_${suffix}`; suffix += 1; }
             usedIds.add(id);
-            return { id, title: option };
+            const description = detail?.description?.trim();
+            const metadata = detail?.metadata?.trim();
+            return {
+                id, title,
+                ...(description ? { description } : {}),
+                ...(metadata ? { metadata } : {}),
+                ...(detail?.image ? { image: detail.image } : {}),
+            };
         });
     return dataSource.length ? dataSource : [{ id: 'option', title: 'Option' }];
 };
@@ -116,9 +124,10 @@ const nodeDefinitions = [
         title: 'Dropdown',
         Icon: Dropdown,
         ConfigComponent: DropdownConfig,
-        defaultConfig: { label: '', required: false, options: [''] },
+        defaultConfig: { label: '', required: false, options: [''], advanced: false, optionDetails: [] },
         toJson: (config, { name }) => ({
-            type: 'Dropdown', label: labelField(config), name, required: !!config.required, 'data-source': toDataSource(config.options),
+            type: 'Dropdown', label: labelField(config), name, required: !!config.required,
+            'data-source': toDataSource(config.options, config.advanced ? config.optionDetails : undefined),
         }),
     },
     {

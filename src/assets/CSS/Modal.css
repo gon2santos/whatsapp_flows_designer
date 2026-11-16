@@ -150,7 +150,7 @@
     border-color: var(--color-primary);
 }
 
-.config-panel .markdown-toolbar + textarea {
+.config-panel .markdown-toolbar+textarea {
     margin-top: 4px;
 }
 
@@ -219,6 +219,52 @@
     flex-direction: column;
     gap: 8px;
     margin-bottom: 12px;
+}
+
+.config-option-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-option-extras {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 12px;
+    padding-left: 10px;
+    border-left: 2px solid var(--color-border);
+}
+
+.config-option-image {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.config-option-image-preview {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.config-option-image-upload,
+.config-option-image button {
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    color: var(--color-text-muted);
+    background: none;
+    font: inherit;
+}
+
+.config-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .config-option-row {
