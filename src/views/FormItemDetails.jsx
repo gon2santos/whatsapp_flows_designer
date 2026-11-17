@@ -39,7 +39,7 @@ const FormItemDetails = ({ config }) => {
             {values.map(({ key, value }) => (
                 <div className="node-details-row" key={key}>
                     {key === 'label' && config.required && check}
-                    <span>{value}</span>
+                    <span>{key === 'text' ? renderMarkdown(value) : value}</span>
                 </div>
             ))}
             {list.length > 0 && (
