@@ -7,7 +7,7 @@ const FormItemPreview = ({ type, title }) => {
 
     return (
         <div className="form-item-preview">
-            <Node title={title}>
+            <Node title={title} type={type}>
                 {definition && <definition.Icon />}
             </Node>
         </div>

@@ -3,6 +3,7 @@ import { collectLinkedScreenIds } from './linkedScreens'
 import { textProps } from './markdownShortcuts'
 import { resolveFooterTarget } from './footerTarget'
 import { migrateOptionIds } from './migrateOptionIds'
+import { dedupeFieldNames } from './fieldNames'
 import { NAV_MENU_TYPE, NAV_MENU_WA_TYPE, navMenuItemIds } from './navMenu'
 
 const findDefinition = (type) => nodeDefinitions.find((definition) => definition.type === type);
@@ -346,7 +347,7 @@ const findJumpItem = (screen, mainScreenIds) => screen.items.find((item) => (
 // Jump to Screen editor enforces the same cap. Returns an array of nodes.
 const buildFooterWithJump = (screen, screens, screenIndex, ownFields, forwardedEntries, jumpItem, incomingFieldsByScreenId, mainScreenIds) => {
     const fallbackFooter = buildFooter(screen, screens, screenIndex, ownFields, forwardedEntries, incomingFieldsByScreenId);
-    const jumps = jumpItem ? validJumpConditions(jumpItem, mainScreenIds): [];
+    const jumps = jumpItem ? validJumpConditions(jumpItem, mainScreenIds) : [];
     if (!jumps.length) return [fallbackFooter];
 
     const reference = `\${form.${jumpItem.config?.id || jumpItem.name}}`;
@@ -465,7 +466,7 @@ const topologicalScreenOrder = (mainScreens, mainScreenIds) => {
 
 // Builds the full WhatsApp Flow JSON document from the current screens/items state.
 export const buildFlowJson = (rawScreens) => {
-    const screens = migrateOptionIds(rawScreens);
+    const screens = dedupeFieldNames(migrateOptionIds(rawScreens));
     const linkedScreenIds = collectLinkedScreenIds(screens);
     const mainScreens = screens.filter((screen) => !linkedScreenIds.has(screen.id));
     const linkedScreens = screens.filter((screen) => linkedScreenIds.has(screen.id));
