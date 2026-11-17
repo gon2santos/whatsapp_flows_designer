@@ -146,7 +146,11 @@ const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => 
     const ifNode = nodes[0];
     const clause = parseClause(ifNode.condition, screenId, nameToItemId, payloadKeyToItemId);
     const ownConditions = clause ? [clause] : parseConditionExpression(ifNode.condition, screenId, nameToItemId, payloadKeyToItemId);
-    if (!ownConditions.length) return { nodes, visibilityConditions: [] };
+    if (!ownConditions.length) {
+        // A well-formed clause on a field this tool doesn't know (e.g. missing from the data model) is skipped so its guarded nodes aren't lost.
+        const isUnresolvedClause = !ifNode.else && CLAUSE_PATTERN.test((ifNode.condition ?? '').trim());
+        return isUnresolvedClause ? unwrapVisibility(ifNode.then, screenId, nameToItemId, payloadKeyToItemId) : { nodes, visibilityConditions: [] };
+    }
 
     const thenResult = unwrapVisibility(ifNode.then, screenId, nameToItemId, payloadKeyToItemId);
     const thenConditions = thenResult.visibilityConditions;
@@ -216,6 +220,14 @@ const extractFooterInfo = (formChildren, screenId, nameToItemId, payloadKeyToIte
     return extractFooterChain(last, screenId, nameToItemId, payloadKeyToItemId);
 };
 
+// An "If" whose "then" is several sibling "If"s (hoisted shared condition over exclusive OR branches) is split
+// into one single-chain "If" per sibling, so each can be unwrapped as a plain AND of conditions.
+const splitSiblingIfs = (node) => (
+    node?.type === 'If' && !node.else && Array.isArray(node.then) && node.then.length > 1 && node.then.every((inner) => inner?.type === 'If')
+        ? node.then.flatMap((inner) => splitSiblingIfs({ ...node, then: [inner] }))
+        : [node]
+);
+
 // Converts a screen's Form children (everything but the Footer) into this app's node items, registering each
 // named node so later conditions (same-screen "form." or forwarded "data.") can resolve back to it by id.
 const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadKeyToItemId) => {
@@ -228,7 +240,7 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
         pendingTopText = null;
     };
 
-    children.forEach((child) => {
+    children.flatMap(splitSiblingIfs).forEach((child) => {
         const { nodes: unwrapped, visibilityConditions } = unwrapVisibility([child], screenId, nameToItemId, payloadKeyToItemId);
         // A Visibility-wrapped pair carries its Top text alongside the field it belongs to, inside the same If.
         const [node, wrappedTopText] = unwrapped.length === 2 && unwrapped[0]?.type === 'TextBody'
