@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { applyMarkdownAction, handleMarkdownShortcut } from '../utils/markdownShortcuts';
+import { renderMarkdown } from '../utils/renderMarkdown';
 
 const ACTIONS = [
     { action: 'bold', label: 'B', title: 'Bold (Ctrl+B)', style: { fontWeight: 700 } },
@@ -13,6 +14,13 @@ const ACTIONS = [
 // Label + markdown formatting toolbar + textarea, writing the syntax straight into the value.
 const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => {
     const textareaRef = useRef(null);
+    const [isEditing, setIsEditing] = useState(() => !value?.trim());
+    const showPreview = !isEditing && !!value?.trim();
+
+    // Entering edit mode from the formatted preview moves focus into the textarea.
+    useEffect(() => {
+        if (isEditing) textareaRef.current?.focus();
+    }, [isEditing]);
 
     // The default size becomes the floor for manual resizing.
     useEffect(() => {
@@ -37,6 +45,7 @@ const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => 
     const handleLabelClick = (event) => {
         if (event.target.closest('button, textarea')) return;
         event.preventDefault();
+        setIsEditing(true);
         textareaRef.current?.focus();
     };
 
@@ -57,14 +66,19 @@ const MarkdownTextarea = ({ label, value, onChange, rows = 3, placeholder }) => 
                     </button>
                 ))}
             </div>
-            <textarea
-                ref={textareaRef}
-                rows={rows}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                onKeyDown={(event) => handleMarkdownShortcut(event, value, onChange)}
-                placeholder={placeholder}
-            />
+            <div className="markdown-field">
+                {showPreview && <div className="markdown-preview">{renderMarkdown(value)}</div>}
+                <textarea
+                    ref={textareaRef}
+                    rows={rows}
+                    value={value}
+                    style={showPreview ? { visibility: 'hidden' } : undefined}
+                    onChange={(event) => onChange(event.target.value)}
+                    onBlur={() => setIsEditing(false)}
+                    onKeyDown={(event) => handleMarkdownShortcut(event, value, onChange)}
+                    placeholder={placeholder}
+                />
+            </div>
         </label>
     );
 };
