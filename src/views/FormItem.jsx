@@ -54,6 +54,7 @@ const FormItem = ({ id, index, type, title, name, config, onConfigChange, screen
         <>
             <Node
                 ref={setRefs}
+                type={type}
                 title={displayTitle}
                 data-node-id={id}
                 details={isExpanded ? <FormItemDetails config={currentConfig} /> : null}

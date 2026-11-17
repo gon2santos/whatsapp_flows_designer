@@ -14,7 +14,7 @@ const PaletteNode = ({ definition }) => {
     const { Icon } = definition;
 
     return (
-        <Node ref={ref} title={definition.title}>
+        <Node ref={ref} title={definition.title} type={definition.type}>
             <Icon />
         </Node>
     );
