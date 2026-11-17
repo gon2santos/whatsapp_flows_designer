@@ -159,6 +159,12 @@ const normalizeGroups = (groups) => groups
     .filter((group) => !group.some((a, i) => group.some((b, j) => j > i && contradicts(a, b))))
     .map((group) => group.filter((condition, i) => group.findIndex((other) => conditionKey(other) === conditionKey(condition)) === i));
 
+// True when some AND-group of the conditions can never hold, so the export discards that branch (or the whole node).
+export const hasContradictoryConditions = (conditions) => {
+    const valid = (conditions ?? []).filter((condition) => condition.nodeId && condition.optionId);
+    return groupConditionsByOr(valid).some((group) => group.some((a, i) => group.some((b, j) => j > i && contradicts(a, b))));
+};
+
 // Resolves a node's Visibility into hoisted "shared" conditions plus OR'd "innerGroups" (one named copy each).
 // A condition on a source field that was itself duplicated by an OR is expanded into one clause per copy, each
 // paired with the conditions that make that copy visible, since only the visible copy ever holds a value.

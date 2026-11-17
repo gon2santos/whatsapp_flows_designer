@@ -146,7 +146,11 @@ const unwrapVisibility = (nodes, screenId, nameToItemId, payloadKeyToItemId) => 
     const ifNode = nodes[0];
     const clause = parseClause(ifNode.condition, screenId, nameToItemId, payloadKeyToItemId);
     const ownConditions = clause ? [clause] : parseConditionExpression(ifNode.condition, screenId, nameToItemId, payloadKeyToItemId);
-    if (!ownConditions.length) return { nodes, visibilityConditions: [] };
+    if (!ownConditions.length) {
+        // A well-formed clause on a field this tool doesn't know (e.g. missing from the data model) is skipped so its guarded nodes aren't lost.
+        const isUnresolvedClause = !ifNode.else && CLAUSE_PATTERN.test((ifNode.condition ?? '').trim());
+        return isUnresolvedClause ? unwrapVisibility(ifNode.then, screenId, nameToItemId, payloadKeyToItemId) : { nodes, visibilityConditions: [] };
+    }
 
     const thenResult = unwrapVisibility(ifNode.then, screenId, nameToItemId, payloadKeyToItemId);
     const thenConditions = thenResult.visibilityConditions;
@@ -216,6 +220,14 @@ const extractFooterInfo = (formChildren, screenId, nameToItemId, payloadKeyToIte
     return extractFooterChain(last, screenId, nameToItemId, payloadKeyToItemId);
 };
 
+// An "If" whose "then" is several sibling "If"s (hoisted shared condition over exclusive OR branches) is split
+// into one single-chain "If" per sibling, so each can be unwrapped as a plain AND of conditions.
+const splitSiblingIfs = (node) => (
+    node?.type === 'If' && !node.else && Array.isArray(node.then) && node.then.length > 1 && node.then.every((inner) => inner?.type === 'If')
+        ? node.then.flatMap((inner) => splitSiblingIfs({ ...node, then: [inner] }))
+        : [node]
+);
+
 // Converts a screen's Form children (everything but the Footer) into this app's node items, registering each
 // named node so later conditions (same-screen "form." or forwarded "data.") can resolve back to it by id.
 const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadKeyToItemId) => {
@@ -228,7 +240,7 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
         pendingTopText = null;
     };
 
-    children.forEach((child) => {
+    children.flatMap(splitSiblingIfs).forEach((child) => {
         const { nodes: unwrapped, visibilityConditions } = unwrapVisibility([child], screenId, nameToItemId, payloadKeyToItemId);
         // A Visibility-wrapped pair carries its Top text alongside the field it belongs to, inside the same If.
         const [node, wrappedTopText] = unwrapped.length === 2 && unwrapped[0]?.type === 'TextBody'
@@ -275,6 +287,62 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
 
     flushPendingTopText();
     return items;
+};
+
+// Export duplicates a node guarded by OR'd Visibility into "<name>_or2", "_or3"... copies. Folds each copy back into
+// its original (same screen, type and config), OR-ing its conditions, and repoints conditions that referenced a copy.
+const OR_COPY_NAME = /^(.+)_or\d+$/;
+const configSignature = (config) => JSON.stringify({ ...config, id: undefined, visibilityConditions: undefined });
+
+const mergeOrCopies = (screens) => {
+    const copyToBase = new Map();
+    screens.forEach((screen) => screen.items.forEach((item) => {
+        const root = OR_COPY_NAME.exec(item.name ?? '')?.[1];
+        if (!root || !item.config?.visibilityConditions?.length) return;
+        const base = screen.items.find((other) => other.name === root && other.type === item.type
+            && other.config?.visibilityConditions?.length && configSignature(other.config) === configSignature(item.config));
+        if (base) copyToBase.set(item.id, base.id);
+    }));
+    if (!copyToBase.size) return screens;
+
+    const remap = (conditions) => conditions.map((condition) => (
+        copyToBase.has(condition.nodeId) ? { ...condition, nodeId: copyToBase.get(condition.nodeId) } : condition
+    ));
+    return screens.map((screen) => {
+        const copiesByBase = new Map();
+        screen.items.forEach((item) => {
+            if (!copyToBase.has(item.id)) return;
+            const baseId = copyToBase.get(item.id);
+            copiesByBase.set(baseId, [...(copiesByBase.get(baseId) ?? []), remap(item.config.visibilityConditions)]);
+        });
+        const items = screen.items
+            .filter((item) => !copyToBase.has(item.id))
+            .map((item) => {
+                const conditions = item.config?.visibilityConditions;
+                if (!conditions?.length) return item;
+                const merged = [remap(conditions), ...(copiesByBase.get(item.id) ?? [])]
+                    .flatMap((group, index) => (index ? [{ ...group[0], logicalOperator: 'or' }, ...group.slice(1)] : group));
+                return { ...item, config: { ...item.config, visibilityConditions: merged } };
+            });
+        return { ...screen, items };
+    });
+};
+
+// Export adds "_1", "_2"... to nodes sharing an id; when 2+ named nodes share that root, the suffix is internal and dropped on import.
+const stripInternalDuplicateSuffixes = (screens) => {
+    const rootOf = (item) => (NAMED_TYPES.includes(item.type) ? /^(.+)_\d+$/.exec(item.config?.id ?? '')?.[1] : undefined);
+    const counts = new Map();
+    screens.forEach((screen) => screen.items.forEach((item) => {
+        const root = rootOf(item);
+        if (root) counts.set(root, (counts.get(root) ?? 0) + 1);
+    }));
+    return screens.map((screen) => ({
+        ...screen,
+        items: screen.items.map((item) => {
+            const root = rootOf(item);
+            return root && counts.get(root) > 1 ? { ...item, name: root, config: { ...item.config, id: root } } : item;
+        }),
+    }));
 };
 
 // Parses a pasted WhatsApp Flow JSON document back into this app's screens/items state.
@@ -330,5 +398,5 @@ export const parseFlowJson = (flow) => {
     const mainScreens = rawMainScreens.map((rawScreen) => buildScreen(rawScreen, rawScreen.id));
     const linkedScreens = rawLinkedScreens.map((rawScreen) => buildScreen(rawScreen, stripLinkedScreenId(rawScreen.id)));
 
-    return migrateOptionIds([...mainScreens, ...linkedScreens]);
+    return stripInternalDuplicateSuffixes(mergeOrCopies(migrateOptionIds([...mainScreens, ...linkedScreens])));
 };

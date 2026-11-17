@@ -1,4 +1,5 @@
 import { toDataSource } from '../../data/nodeDefinitions'
+import { hasContradictoryConditions } from '../../utils/buildFlowJson'
 
 const MAX_CONDITIONS = 3;
 const emptyCondition = () => ({ nodeId: '', operator: 'equals', optionId: '', logicalOperator: 'and' });
@@ -87,6 +88,9 @@ const VisibilityConditions = ({ config, onChange, sources }) => {
                     </div>
                 </div>
             ))}
+            {hasContradictoryConditions(conditions) && (
+                <p className="config-field-error">Configuración inválida. El nodo podría descartarse al exportar el JSON.</p>
+            )}
             {conditions.length < MAX_CONDITIONS && (
                 <button type="button" onClick={addCondition}>Add condition</button>
             )}
