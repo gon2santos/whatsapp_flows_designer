@@ -289,6 +289,62 @@ const buildScreenItems = (children, screenId, screenName, nameToItemId, payloadK
     return items;
 };
 
+// Export duplicates a node guarded by OR'd Visibility into "<name>_or2", "_or3"... copies. Folds each copy back into
+// its original (same screen, type and config), OR-ing its conditions, and repoints conditions that referenced a copy.
+const OR_COPY_NAME = /^(.+)_or\d+$/;
+const configSignature = (config) => JSON.stringify({ ...config, id: undefined, visibilityConditions: undefined });
+
+const mergeOrCopies = (screens) => {
+    const copyToBase = new Map();
+    screens.forEach((screen) => screen.items.forEach((item) => {
+        const root = OR_COPY_NAME.exec(item.name ?? '')?.[1];
+        if (!root || !item.config?.visibilityConditions?.length) return;
+        const base = screen.items.find((other) => other.name === root && other.type === item.type
+            && other.config?.visibilityConditions?.length && configSignature(other.config) === configSignature(item.config));
+        if (base) copyToBase.set(item.id, base.id);
+    }));
+    if (!copyToBase.size) return screens;
+
+    const remap = (conditions) => conditions.map((condition) => (
+        copyToBase.has(condition.nodeId) ? { ...condition, nodeId: copyToBase.get(condition.nodeId) } : condition
+    ));
+    return screens.map((screen) => {
+        const copiesByBase = new Map();
+        screen.items.forEach((item) => {
+            if (!copyToBase.has(item.id)) return;
+            const baseId = copyToBase.get(item.id);
+            copiesByBase.set(baseId, [...(copiesByBase.get(baseId) ?? []), remap(item.config.visibilityConditions)]);
+        });
+        const items = screen.items
+            .filter((item) => !copyToBase.has(item.id))
+            .map((item) => {
+                const conditions = item.config?.visibilityConditions;
+                if (!conditions?.length) return item;
+                const merged = [remap(conditions), ...(copiesByBase.get(item.id) ?? [])]
+                    .flatMap((group, index) => (index ? [{ ...group[0], logicalOperator: 'or' }, ...group.slice(1)] : group));
+                return { ...item, config: { ...item.config, visibilityConditions: merged } };
+            });
+        return { ...screen, items };
+    });
+};
+
+// Export adds "_1", "_2"... to nodes sharing an id; when 2+ named nodes share that root, the suffix is internal and dropped on import.
+const stripInternalDuplicateSuffixes = (screens) => {
+    const rootOf = (item) => (NAMED_TYPES.includes(item.type) ? /^(.+)_\d+$/.exec(item.config?.id ?? '')?.[1] : undefined);
+    const counts = new Map();
+    screens.forEach((screen) => screen.items.forEach((item) => {
+        const root = rootOf(item);
+        if (root) counts.set(root, (counts.get(root) ?? 0) + 1);
+    }));
+    return screens.map((screen) => ({
+        ...screen,
+        items: screen.items.map((item) => {
+            const root = rootOf(item);
+            return root && counts.get(root) > 1 ? { ...item, name: root, config: { ...item.config, id: root } } : item;
+        }),
+    }));
+};
+
 // Parses a pasted WhatsApp Flow JSON document back into this app's screens/items state.
 // Throws a descriptive Error when the document's shape can't be recognized at all.
 export const parseFlowJson = (flow) => {
@@ -342,5 +398,5 @@ export const parseFlowJson = (flow) => {
     const mainScreens = rawMainScreens.map((rawScreen) => buildScreen(rawScreen, rawScreen.id));
     const linkedScreens = rawLinkedScreens.map((rawScreen) => buildScreen(rawScreen, stripLinkedScreenId(rawScreen.id)));
 
-    return migrateOptionIds([...mainScreens, ...linkedScreens]);
+    return stripInternalDuplicateSuffixes(mergeOrCopies(migrateOptionIds([...mainScreens, ...linkedScreens])));
 };
