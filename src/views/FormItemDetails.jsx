@@ -1,25 +1,6 @@
+import { renderMarkdown } from '../utils/renderMarkdown'
+
 const VALUE_KEYS = ['label', 'text', 'inputType', 'helperText', 'regex', 'description', 'fileName', 'mediaSize', 'actionLevel', 'screenId', 'linkedScreenId'];
-
-const INLINE_MARKDOWN = /(\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~|\[[^\]]+\]\([^)]+\))/g;
-
-const renderInline = (text) => text.split(INLINE_MARKDOWN).map((part, index) => {
-    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
-    if (/^\*[^*]+\*$/.test(part)) return <em key={index}>{part.slice(1, -1)}</em>;
-    if (/^~~[^~]+~~$/.test(part)) return <s key={index}>{part.slice(2, -2)}</s>;
-    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-    if (link) return <u key={index}>{link[1]}</u>;
-    return part;
-});
-
-// Renders the WhatsApp markdown subset (bold, italic, strikethrough, links, lists) line by line.
-const renderMarkdown = (text) => text.split('\n').map((line, index) => {
-    const list = line.match(/^\s*(-|\d+\.)\s+(.*)$/);
-    return (
-        <div className="node-details-top" key={index}>
-            {list ? <>{list[1] === '-' ? '\u2022' : list[1]} {renderInline(list[2])}</> : renderInline(line)}
-        </div>
-    );
-});
 
 // Read-only summary of a node's modal data, shown when the node is hovered.
 const FormItemDetails = ({ config }) => {
