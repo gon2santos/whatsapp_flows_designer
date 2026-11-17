@@ -89,7 +89,7 @@ const FormItem = ({ id, index, type, title, name, config, onConfigChange, screen
                                     placeholder=""
                                 />
                             </label>
-                            {isDuplicateId && <p className="config-field-error">Este Id ya está en uso por otro nodo. Debes elegir uno diferente.</p>}
+                            {isDuplicateId && <p className="config-field-warning">Otros nodos comparten este Id.</p>}
                         </div>
                     )}
                     {ConfigPanel && (
